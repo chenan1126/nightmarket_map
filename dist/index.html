@@ -268,6 +268,141 @@
         .form-grid { grid-template-columns: 1fr; }
         .field.full { grid-column: auto; }
       }
+
+      /* Reference pass: practical map + local-review product language */
+      :root {
+        --ink: #19232d;
+        --ink-2: #f3f5f6;
+        --ink-3: #e9edef;
+        --paper: #ffffff;
+        --paper-2: #f5f6f7;
+        --line: rgba(25, 35, 45, .13);
+        --muted: #68747c;
+        --hot: #ed5b52;
+        --hot-dark: #d5423a;
+        --sun: #e6a52b;
+        --map: #e7eceb;
+        --map-2: #f4f6f5;
+        --blue: #2f7fd0;
+        --shadow: 0 12px 28px rgba(25, 35, 45, .13);
+      }
+      body { background: #f4f6f7; }
+      .topbar { height: 74px; padding: 0 22px; gap: 22px; color: var(--ink); background: #fff; border-bottom: 1px solid var(--line); }
+      .brand { min-width: 160px; }
+      .brand-mark { width: 34px; height: 34px; color: var(--hot); background: transparent; border: 1px solid #d8e0e4; border-radius: 9px; box-shadow: none; }
+      .brand-text strong { font-size: 18px; letter-spacing: -.04em; }
+      .brand-text span { display: none; }
+      .market-select { display: inline-flex; align-items: center; gap: 9px; height: 39px; padding: 0 12px; color: var(--ink); background: #fff; border: 0; border-left: 1px solid var(--line); font-weight: 750; white-space: nowrap; }
+      .market-select span { color: var(--muted); font-size: 18px; transform: translateY(-2px); }
+      .market-select:hover { color: var(--hot-dark); }
+      .search-wrap { width: min(600px, 45vw); }
+      .search-wrap svg { color: #697680; }
+      .search-wrap input { color: var(--ink); background: #f4f6f7; border: 1px solid #dfe5e8; border-radius: 9px; }
+      .search-wrap input::placeholder { color: #78858d; }
+      .search-wrap input:focus { background: #fff; border-color: var(--hot); }
+      .icon-btn { color: var(--ink); border-radius: 9px; }
+      .icon-btn:hover { color: var(--hot-dark); background: #f3f5f6; }
+      .avatar-btn { width: 35px; height: 35px; color: #fff; background: var(--hot); border: 0; }
+      .primary-btn { height: 40px; color: #fff; background: var(--hot); border-radius: 8px; box-shadow: none; }
+      .primary-btn:hover { background: #f26960; box-shadow: none; }
+      .primary-btn:active { transform: translateY(1px); box-shadow: none; }
+      .workspace { grid-template-columns: minmax(390px, 440px) minmax(0, 1fr); }
+      .sidebar { min-height: calc(100vh - 74px); background: #fff; }
+      .sidebar-inner { padding: 0 20px 28px; }
+      .eyebrow { margin-top: 21px; color: var(--muted); font-size: 12px; font-weight: 700; }
+      .eyebrow::before { width: 6px; height: 6px; background: var(--hot); box-shadow: none; }
+      .sidebar h1 { margin: 6px 0 0; font-size: 24px; letter-spacing: -.05em; }
+      .sidebar-intro { margin: 4px 0 14px; color: var(--muted); font-size: 13px; }
+      .area-switch { padding: 0; margin: 0 -20px 15px; background: #fff; border-bottom: 1px solid var(--line); border-radius: 0; }
+      .area-switch button { height: 44px; color: var(--muted); border-radius: 0; font-size: 14px; }
+      .area-switch button.active { color: var(--hot-dark); background: #fff; box-shadow: inset 0 -2px 0 var(--hot); }
+      .quick-filters { display: flex; gap: 8px; margin: 0 0 9px; }
+      .quick-filter { height: 34px; padding: 0 13px; color: #53606a; background: #fff; border: 1px solid #dce3e6; border-radius: 8px; font-size: 13px; }
+      .quick-filter:hover { border-color: var(--hot); }
+      .quick-filter.active { color: var(--hot-dark); background: #fff4f2; border-color: #f1a19b; font-weight: 800; }
+      .filters { gap: 7px; padding: 0 0 5px; }
+      .filter-chip { height: 31px; padding: 0 11px; color: #56636b; background: #fff; border-color: #e0e5e7; border-radius: 8px; font-size: 12px; }
+      .filter-chip:hover { color: var(--hot-dark); border-color: #efaaa4; }
+      .filter-chip.active { color: var(--ink); background: #f0f3f4; border-color: #d5dde0; }
+      .list-heading { margin: 17px 0 2px; }
+      .list-heading h2 { font-size: 15px; }
+      .list-heading span { font-size: 12px; }
+      .stall-list { gap: 0; }
+      .stall-card { grid-template-columns: 72px 1fr auto; gap: 13px; padding: 13px 0; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: #fff; box-shadow: none; transform: none; }
+      .stall-card:hover, .stall-card.selected { border-color: var(--line); background: #fff; box-shadow: none; transform: none; }
+      .stall-card.selected { position: relative; }
+      .stall-card.selected::before { content: ""; position: absolute; left: -20px; top: 0; bottom: 0; width: 3px; background: var(--hot); }
+      .stall-thumb { width: 72px; height: 72px; border-radius: 10px; font-size: 30px; }
+      .stall-thumb .live { right: 5px; top: 5px; border-color: #fff; }
+      .stall-name { font-size: 15px; letter-spacing: -.02em; }
+      .stall-kind { margin: 3px 0 4px; font-size: 12px; }
+      .rating-row { gap: 5px; font-size: 12px; }
+      .stars { font-size: 13px; }
+      .stall-bottom { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 5px; }
+      .status-pill { display: inline-flex; align-items: center; gap: 5px; color: #148143; font-size: 12px; font-weight: 750; }
+      .status-pill i { width: 7px; height: 7px; background: #1ea257; border-radius: 50%; }
+      .status-pill.closed { color: var(--muted); }
+      .status-pill.closed i { background: #9aa5ab; }
+      .stall-price { color: #4f5b62; font-size: 12px; white-space: nowrap; }
+      .bookmark { width: 30px; height: 30px; }
+      .featured { margin-top: 18px; border: 1px solid #e1e6e8; border-radius: 12px; background: #fff; box-shadow: none; }
+      .featured img { height: 92px; opacity: 1; }
+      .featured-content { padding: 12px 13px 14px; color: var(--ink); }
+      .featured-label { color: var(--hot-dark); }
+      .featured-content p { color: var(--muted); }
+      .featured-link { color: var(--hot-dark); }
+      .map-stage { min-height: calc(100vh - 74px); background: var(--map); }
+      .map-canvas { background: var(--map-2); }
+      .map-canvas::before { opacity: .72; background-image: linear-gradient(35deg, transparent 0 48%, rgba(255,255,255,.95) 49% 51%, transparent 52%), linear-gradient(118deg, transparent 0 49%, rgba(255,255,255,.8) 50% 52%, transparent 53%); background-size: 220px 180px, 260px 220px; transform: rotate(-6deg) scale(1.12); }
+      .map-canvas::after { opacity: .5; background: linear-gradient(90deg, transparent 0 13%, rgba(181,218,194,.38) 13.2% 24%, transparent 24.2% 79%, rgba(181,218,194,.3) 79.2% 92%, transparent 92.2%), linear-gradient(0deg, transparent 0 70%, rgba(148,204,226,.34) 70.2% 82%, transparent 82.2%); }
+      .map-road { height: 5px; background: #fff; box-shadow: 0 0 0 1px rgba(191,203,200,.5); }
+      .street-label { color: rgba(76,101,101,.64); font-size: 11px; }
+      .market-area { left: 23%; top: 38%; width: 54%; height: 18%; border: 2px solid rgba(237,91,82,.27); background: rgba(255,255,255,.3); border-radius: 12px; transform: rotate(-7deg); }
+      .market-label { left: 32%; top: 44%; color: #9f5b54; font-size: 14px; letter-spacing: .03em; transform: rotate(-7deg); }
+      .map-summary { left: 25px; top: 25px; max-width: 290px; padding: 15px 17px; color: var(--ink); background: rgba(255,255,255,.96); border: 1px solid #e0e6e7; border-radius: 12px; box-shadow: 0 8px 20px rgba(35,53,53,.1); }
+      .map-summary .summary-kicker { color: var(--hot-dark); font-size: 11px; letter-spacing: .03em; }
+      .map-summary h2 { margin: 3px 0 1px; font-size: 18px; }
+      .map-summary p { color: var(--muted); font-size: 12px; }
+      .map-pin { width: 35px; height: 35px; color: #fff; background: var(--hot); border: 2px solid #fff; border-radius: 50%; box-shadow: 0 4px 10px rgba(57,75,76,.2); transform: none; }
+      .map-pin span { font-size: 15px; transform: none; }
+      .map-pin:hover, .map-pin.active { transform: scale(1.12); box-shadow: 0 6px 14px rgba(57,75,76,.25); }
+      .pin-2, .pin-4, .pin-6 { --pin: var(--hot); }
+      .pin-3, .pin-5 { --pin: #6c91a9; }
+      .user-location { box-shadow: 0 0 0 8px rgba(47,127,208,.18), 0 4px 8px rgba(45,61,60,.18); }
+      .map-controls { right: 25px; top: 25px; gap: 7px; }
+      .map-control { width: 40px; height: 40px; color: var(--ink); background: #fff; border: 1px solid #e0e6e7; border-radius: 9px; box-shadow: 0 5px 14px rgba(34,53,53,.1); }
+      .map-control:hover { color: var(--hot-dark); }
+      .map-legend { left: 25px; bottom: 22px; padding: 8px 11px; color: #53666a; background: rgba(255,255,255,.94); border: 1px solid #e0e6e7; border-radius: 9px; box-shadow: 0 5px 14px rgba(34,53,53,.08); }
+      .detail-sheet { right: 25px; bottom: 25px; width: min(380px, calc(100% - 50px)); padding: 18px; background: #fff; border: 1px solid #e0e6e7; border-radius: 13px; box-shadow: 0 14px 32px rgba(25,35,45,.16); }
+      .detail-emoji { width: 52px; height: 52px; border-radius: 11px; font-size: 27px; }
+      .detail-title h3 { font-size: 18px; }
+      .detail-note { border-left-color: var(--hot); }
+      .rate-btn { background: var(--ink); }
+      .save-btn { color: var(--hot-dark); background: #fff3f1; border-color: #f2c1bb; }
+      .modal-backdrop { background: rgba(25,35,45,.42); backdrop-filter: blur(2px); }
+      .modal { background: #fff; border-radius: 14px; }
+      .modal-header h2 { font-size: 22px; }
+      .field input, .field select, .field textarea { background: #fff; border-radius: 8px; }
+      .secondary-btn { background: #f1f3f4; border-radius: 8px; }
+      @media (max-width: 900px) {
+        .market-select { display: none; }
+        .topbar { padding: 0 16px; }
+        .brand { min-width: auto; }
+        .workspace { grid-template-columns: 330px minmax(0, 1fr); }
+      }
+      @media (max-width: 700px) {
+        .topbar { height: 66px; }
+        .workspace { display: flex; flex-direction: column; }
+        .map-stage { min-height: 58vh; height: 58vh; }
+        .sidebar { min-height: auto; }
+        .sidebar-inner { padding: 0 15px 70px; }
+        .area-switch { margin-left: -15px; margin-right: -15px; }
+        .stall-card.selected::before { left: -15px; }
+        .map-summary { left: 17px; top: 17px; }
+        .map-controls { right: 15px; top: 17px; }
+        .map-legend { left: 15px; bottom: 15px; }
+        .detail-sheet { right: 15px; bottom: 15px; width: calc(100% - 30px); }
+      }
     </style>
   </head>
   <body>
@@ -279,6 +414,7 @@
           </div>
           <div class="brand-text"><strong>夜市地圖</strong><span>MARKET MAP</span></div>
         </div>
+        <button class="market-select" id="marketSelect" aria-label="切換夜市">饒河街觀光夜市 <span>⌄</span></button>
         <label class="search-wrap" aria-label="搜尋夜市或攤位">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
           <input id="searchInput" type="search" placeholder="搜尋夜市、攤位或想吃的…" autocomplete="off" />
@@ -293,32 +429,37 @@
       <main class="workspace">
         <aside class="sidebar" aria-label="夜市與攤位清單">
           <div class="sidebar-inner">
-            <div class="eyebrow">台北・今晚去逛</div>
+            <div class="eyebrow">台北・松山區</div>
             <h1>饒河街觀光夜市</h1>
-            <p class="sidebar-intro">由 1,284 位夜市客一起更新的私房地圖</p>
+            <p class="sidebar-intro">共 52 個攤位・由大家一起更新</p>
 
             <div class="area-switch" role="tablist" aria-label="清單切換">
-              <button class="active" data-view="explore" role="tab" aria-selected="true">探索攤位</button>
-              <button data-view="saved" role="tab" aria-selected="false">我的收藏 <span id="savedCount">0</span></button>
+              <button class="active" data-view="explore" role="tab" aria-selected="true">地圖</button>
+              <button data-view="saved" role="tab" aria-selected="false">清單 <span id="savedCount">0</span></button>
+            </div>
+            <div class="quick-filters" role="group" aria-label="排序與營業狀態">
+              <button class="quick-filter active" data-sort="open">● 營業中</button>
+              <button class="quick-filter" data-sort="distance">距離</button>
+              <button class="quick-filter" data-sort="rating">評分</button>
             </div>
             <div class="filters" role="group" aria-label="攤位分類">
-              <button class="filter-chip active" data-filter="all">全部</button>
+              <button class="filter-chip active" data-filter="all">全部分類</button>
               <button class="filter-chip" data-filter="主食">主食</button>
               <button class="filter-chip" data-filter="甜點">甜點</button>
               <button class="filter-chip" data-filter="飲品">飲品</button>
               <button class="filter-chip" data-filter="伴手禮">伴手禮</button>
             </div>
 
-            <div class="list-heading"><h2>附近的人都在吃</h2><span id="resultCount">6 個結果</span></div>
+            <div class="list-heading"><h2>附近的攤位</h2><span id="resultCount">6 個結果</span></div>
             <div class="stall-list" id="stallList"></div>
 
             <section class="featured" aria-label="今日人氣">
               <img src="featured-food.png" alt="夜市攤位上的蚵仔煎與胡椒餅" />
               <div class="featured-content">
-                <div class="featured-label">今日人氣・共同筆記</div>
-                <strong>第一次來？先從這 3 攤開始</strong>
+                <div class="featured-label">共同筆記</div>
+                <strong>第一次來，先逛這 3 攤</strong>
                 <p>大家最近最常收藏的饒河街路線。</p>
-                <button class="featured-link" id="routeBtn">查看逛吃路線 <span class="featured-arrow">→</span></button>
+                <button class="featured-link" id="routeBtn">查看路線 <span class="featured-arrow">→</span></button>
               </div>
             </section>
           </div>
@@ -330,7 +471,7 @@
             <div class="street-label street-1">八德路四段</div><div class="street-label street-2">塔悠路</div><div class="street-label street-3">松河街</div>
             <div class="market-area"></div><div class="market-label">饒河街夜市・主入口</div>
 
-            <div class="map-summary"><div class="summary-kicker">LIVE MAP・18:42</div><h2>今晚，從哪一攤開始？</h2><p>目前有 6 個攤位正在營業</p></div>
+            <div class="map-summary"><div class="summary-kicker">台北・松山區</div><h2>饒河街觀光夜市</h2><p>目前有 6 個攤位正在營業</p></div>
             <button class="map-pin pin-1" data-id="1" aria-label="陳董藥燉排骨"><span>🍲</span></button>
             <button class="map-pin pin-2" data-id="2" aria-label="福州胡椒餅"><span>🥙</span></button>
             <button class="map-pin pin-3" data-id="3" aria-label="阿國滷味"><span>🍢</span></button>
@@ -378,16 +519,17 @@
 
     <script>
       const seedStalls = [
-        { id: 1, name: '陳董藥燉排骨', type: '主食', emoji: '🍲', rating: 4.8, reviews: 186, note: '湯頭溫潤不死鹹，排骨燉得很透。晚間 7 點後通常要排一下隊。', color: '#f6d9b4', live: true },
-        { id: 2, name: '福州胡椒餅', type: '主食', emoji: '🥙', rating: 4.7, reviews: 241, note: '外皮酥脆、內餡胡椒香很足，出爐時最香。', color: '#edd4a8', live: true },
-        { id: 3, name: '阿國滷味', type: '主食', emoji: '🍢', rating: 4.6, reviews: 98, note: '選料很多，辣油很香，適合買一盒邊走邊吃。', color: '#d7e7d6', live: true },
-        { id: 4, name: '東發號蚵仔麵線', type: '主食', emoji: '🍜', rating: 4.5, reviews: 154, note: '蚵仔新鮮、麵線滑順，是很有老味道的一碗。', color: '#d9e4ed', live: true },
-        { id: 5, name: '御品元冰火湯圓', type: '甜點', emoji: '🍡', rating: 4.7, reviews: 302, note: '熱湯圓配冰淇淋，口感很有反差，適合兩個人分著吃。', color: '#f3d6de', live: true },
-        { id: 6, name: '彩虹粉圓冰', type: '飲品', emoji: '🥤', rating: 4.3, reviews: 76, note: '料多不甜膩，逛熱了來一碗剛剛好。', color: '#d7e0ed', live: true }
+        { id: 1, name: '陳董藥燉排骨', type: '主食', emoji: '🍲', rating: 4.8, reviews: 186, distance: 0.2, price: '$120–180', note: '湯頭溫潤不死鹹，排骨燉得很透。晚間 7 點後通常要排一下隊。', color: '#f6d9b4', live: true },
+        { id: 2, name: '福州胡椒餅', type: '主食', emoji: '🥙', rating: 4.7, reviews: 241, distance: 0.4, price: '$50–60', note: '外皮酥脆、內餡胡椒香很足，出爐時最香。', color: '#edd4a8', live: true },
+        { id: 3, name: '阿國滷味', type: '主食', emoji: '🍢', rating: 4.6, reviews: 98, distance: 0.3, price: '$70–150', note: '選料很多，辣油很香，適合買一盒邊走邊吃。', color: '#d7e7d6', live: true },
+        { id: 4, name: '東發號蚵仔麵線', type: '主食', emoji: '🍜', rating: 4.5, reviews: 154, distance: 0.5, price: '$60–90', note: '蚵仔新鮮、麵線滑順，是很有老味道的一碗。', color: '#d9e4ed', live: true },
+        { id: 5, name: '御品元冰火湯圓', type: '甜點', emoji: '🍡', rating: 4.7, reviews: 302, distance: 0.7, price: '$100–160', note: '熱湯圓配冰淇淋，口感很有反差，適合兩個人分著吃。', color: '#f3d6de', live: true },
+        { id: 6, name: '彩虹粉圓冰', type: '飲品', emoji: '🥤', rating: 4.3, reviews: 76, distance: 0.6, price: '$50–80', note: '料多不甜膩，逛熱了來一碗剛剛好。', color: '#d7e0ed', live: true }
       ];
       let stalls = [...seedStalls];
       let activeFilter = 'all';
       let activeView = 'explore';
+      let sortMode = 'open';
       let selectedId = null;
       let saved = new Set(JSON.parse(localStorage.getItem('nightmarket-saved') || '[]'));
       const $ = (id) => document.getElementById(id);
@@ -404,7 +546,7 @@
           const matchesView = activeView !== 'saved' || saved.has(stall.id);
           const haystack = `${stall.name}${stall.type}${stall.note}`.toLowerCase();
           return matchesFilter && matchesView && (!query || haystack.includes(query));
-        });
+        }).sort((a, b) => sortMode === 'distance' ? a.distance - b.distance : sortMode === 'rating' ? b.rating - a.rating : Number(b.live) - Number(a.live));
       }
       function renderList() {
         const list = visibleStalls();
@@ -417,7 +559,7 @@
         stallList.innerHTML = list.map(stall => `
           <div class="stall-card ${selectedId === stall.id ? 'selected' : ''}" data-id="${stall.id}" role="button" tabindex="0" aria-label="查看 ${stall.name} 詳情">
             <div class="stall-thumb" style="--thumb:${stall.color}"><span>${stall.emoji}</span>${stall.live ? '<i class="live" title="營業中"></i>' : ''}</div>
-            <div class="stall-meta"><span class="stall-name">${stall.name}</span><span class="stall-kind">${stall.type}・目前營業中</span><div class="rating-row"><span class="stars">${stars(stall.rating)}</span><span class="rating-value">${stall.rating.toFixed(1)}</span><span class="review-count">(${stall.reviews})</span></div></div>
+            <div class="stall-meta"><span class="stall-name">${stall.name}</span><span class="stall-kind">${stall.type}・${stall.distance ? `${stall.distance.toFixed(1)} 公里` : '剛加入'}</span><div class="rating-row"><span class="stars">${stars(stall.rating)}</span><span class="rating-value">${stall.rating ? stall.rating.toFixed(1) : '尚無'}</span><span class="review-count">${stall.reviews ? `(${stall.reviews})` : ''}</span></div><div class="stall-bottom"><span class="status-pill ${stall.live ? '' : 'closed'}"><i></i>${stall.live ? '營業中' : '已打烊'}</span><span class="stall-price">${stall.price || '$—'}</span></div></div>
             <button class="bookmark ${saved.has(stall.id) ? 'saved' : ''}" data-save="${stall.id}" aria-label="${saved.has(stall.id) ? '取消收藏' : '收藏'} ${stall.name}">${saved.has(stall.id) ? '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 3.5A2.5 2.5 0 0 1 8.5 1h7A2.5 2.5 0 0 1 18 3.5V22l-6-3.6L6 22V3.5Z"/></svg>' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3.5A2.5 2.5 0 0 1 8.5 1h7A2.5 2.5 0 0 1 18 3.5V22l-6-3.6L6 22V3.5Z"/></svg>'}</button>
           </div>`).join('');
         stallList.querySelectorAll('.stall-card').forEach(card => {
@@ -468,6 +610,7 @@
       function closeModal() { $('recommendModal').classList.remove('open'); $('recommendForm').reset(); }
 
       $('searchInput').addEventListener('input', renderList);
+      document.querySelectorAll('.quick-filter').forEach(filter => filter.addEventListener('click', () => { sortMode = filter.dataset.sort; document.querySelectorAll('.quick-filter').forEach(item => item.classList.toggle('active', item === filter)); renderList(); }));
       document.querySelectorAll('.filter-chip').forEach(chip => chip.addEventListener('click', () => { activeFilter = chip.dataset.filter; document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('active', c === chip)); renderList(); }));
       document.querySelectorAll('[data-view]').forEach(tab => tab.addEventListener('click', () => { activeView = tab.dataset.view; document.querySelectorAll('[data-view]').forEach(t => { const isActive = t === tab; t.classList.toggle('active', isActive); t.setAttribute('aria-selected', isActive); }); renderList(); }));
       document.querySelectorAll('.map-pin').forEach(pin => pin.addEventListener('click', () => openDetail(Number(pin.dataset.id))));
@@ -482,10 +625,11 @@
       $('recommendModal').addEventListener('click', e => { if (e.target === $('recommendModal')) closeModal(); });
       $('recommendForm').addEventListener('submit', e => {
         e.preventDefault(); const form = new FormData(e.currentTarget); const nextId = Math.max(...stalls.map(s => s.id)) + 1;
-        const newStall = { id: nextId, name: form.get('stallName').trim(), type: form.get('stallType'), emoji: form.get('stallEmoji'), rating: 0, reviews: 0, note: form.get('stallNote').trim() || '剛加入地圖，等你來留下第一則評分。', color: '#f2dfbd', live: true };
+        const newStall = { id: nextId, name: form.get('stallName').trim(), type: form.get('stallType'), emoji: form.get('stallEmoji'), rating: 0, reviews: 0, distance: 0.1, price: '$—', note: form.get('stallNote').trim() || '剛加入地圖，等你來留下第一則評分。', color: '#f2dfbd', live: true };
         stalls = [newStall, ...stalls]; closeModal(); activeView = 'explore'; document.querySelectorAll('[data-view]').forEach(t => { t.classList.toggle('active', t.dataset.view === 'explore'); t.setAttribute('aria-selected', t.dataset.view === 'explore'); }); renderList(); openDetail(nextId); showToast('推薦已加入地圖，謝謝你！');
       });
       $('locateBtn').addEventListener('click', () => { const locationDot = document.querySelector('.user-location'); if (locationDot) { locationDot.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.35)' }, { transform: 'scale(1)' }], { duration: 460 }); } showToast('已定位到你目前的位置'); });
+      $('marketSelect').addEventListener('click', () => showToast('目前先從饒河街開始，之後可以切換其他夜市。'));
       $('helpBtn').addEventListener('click', () => showToast('點地圖上的圖釘，就能查看攤位詳情與評分。'));
       $('profileBtn').addEventListener('click', () => showToast('你的收藏會保存在這台裝置上。'));
       $('routeBtn').addEventListener('click', () => { $('searchInput').value = ''; activeFilter = 'all'; document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('active', c.dataset.filter === 'all')); showToast('已為你準備今晚的 3 攤路線'); renderList(); openDetail(1); });
