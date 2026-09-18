@@ -6,7 +6,7 @@
 
 目前 Web 是 React + Vite 的靜態站：`npm run build` 產生 `dist`，`.openai/hosting.json` 只部署 `dist`，沒有 API、伺服器端程式、資料庫或帳號服務。現有 `public/data/night-markets.json` 是編譯時載入的唯讀快照，因此無法直接支援跨使用者投稿、表決或星評。
 
-第一版採用 **Supabase（Postgres + Auth + Row Level Security）**。它和靜態 Vite 的邊界清楚，前端可直接使用公開的 project URL / publishable key，資料安全由資料庫 RLS 控制；投稿與投票也能用唯一約束保證「一帳號一票」與「一帳號一攤位一筆星評」。目前兩個 migrations 已部署，86 筆名錄已匯入並標為 `needs_review`；Anonymous Sign-Ins 暫時關閉，等待 CAPTCHA / 反濫用方案決定。
+第一版採用 **Supabase（Postgres + Auth + Row Level Security）**。它和靜態 Vite 的邊界清楚，前端可直接使用公開的 project URL / publishable key，資料安全由資料庫 RLS 控制；投稿與投票也能用唯一約束保證「一帳號一票」與「一帳號一攤位一筆星評」。目前三個 migrations 已部署，86 筆名錄已匯入並標為 `needs_review`；Cloudflare Turnstile 已在 Supabase Auth 啟用，Anonymous Sign-Ins 暫時關閉。
 
 Firebase 是可行的第二選擇（Firestore Rules、Firebase Auth、App Check），但查詢提案與歷史版本時資料模型較分散；自建 API / PostgreSQL 在目前只有靜態 hosting 的條件下會增加主機、密鑰、部署與維運工作。試行規模不需要為了效能引入更複雜的架構。
 
@@ -47,8 +47,8 @@ Supabase Auth 負責會員登入（第一版可用 email magic link，之後再�
 免登入仍是低門檻入口，匿名 user 也可以被大量建立，不能把 Auth user ID 當成人類驗證；建議按成本由低到高逐步加入：
 
 1. 前端與資料庫端都驗證名稱、位置描述、來源 URL、文字長度與 `kind`；來源必填，拒絕空白、非 HTTP(S) 或明顯腳本內容。
-2. 開啟 Anonymous Sign-Ins 時同時加入官方建議的 invisible CAPTCHA / Cloudflare Turnstile；由 Edge Function / serverless endpoint 驗證 token 後才呼叫匿名登入或寫入；不要只在瀏覽器驗證。若第一版暫不開 anonymous auth，則改用受保護 endpoint 做投稿 transaction。
-3. 以 IP hash、匿名提交 token、時間窗和來源網域做限流，例如單一 token 每小時有限筆數；IP hash 需設定保存期限，並在隱私政策說明用途。
+2. 開啟 Anonymous Sign-Ins 時使用已啟用的 Cloudflare Turnstile，前端取得 token，交由 Supabase Auth 在匿名登入時於伺服器端驗證。已登入匿名身分持續投稿時不會重新觸發登入驗證，須觀察濫用情況。
+3. 資料庫已限制每個匿名身分每小時最多 3 筆提案。此限制無法阻止同一人建立多個匿名身分；若實際濫用出現，再評估 IP hash、提交 token、來源網域與時間窗等控制。IP hash 需設定保存期限，並在隱私政策說明用途。
 4. 對相同夜市、相似名稱與鄰近位置做去重提示，保留 `duplicate_of` 或合併標記，避免重複建檔。
 5. 新投稿進入 `pending`，不可直接出現在正式地圖；提供檢舉、暫停與管理員封鎖來源的能力。疑似垃圾內容只顯示給審核者或進入待補資料。
 
@@ -70,10 +70,10 @@ Supabase Auth 負責會員登入（第一版可用 email magic link，之後再�
 
 需要使用者提供或在外部服務完成的工作：
 
-- 決定是否在 CAPTCHA / 反濫用方案完成後開啟 Anonymous Sign-Ins。
+- 決定是否在現有 CAPTCHA 與每身分限流下開啟 Anonymous Sign-Ins。
 - 決定永久會員登入方式並完成 email 寄信；目前本機 redirect URL 為 `http://localhost:5173`，正式網域尚未決定。若用 Google 等 OAuth，還需設定 OAuth provider 的 client ID/secret。
 - 決定正式網域及 Supabase Auth allowed URLs；目前 hosting 設定只有靜態 `dist` 目錄，需在部署平台設定 `VITE_*` build-time environment variables。
-- 若啟用 Anonymous Sign-Ins / Turnstile，建立 CAPTCHA site key / secret key，並提供一個不暴露 secret 的驗證 endpoint（Supabase Edge Function 或其他 serverless runtime）。
+- Turnstile site key 已放在本機未追蹤的 `.env.local`，secret key 已設於 Supabase Auth CAPTCHA；正式部署須在平台設定公開 site key，並在 Cloudflare widget 增加正式網域。
 - 指派 `moderator` / `admin`，確認誰處理中壢與中原的久候、重複和爭議提案；這是營運決策，不應由前端預設。
 
 ## 部署與資料依賴
@@ -82,14 +82,14 @@ Supabase Auth 負責會員登入（第一版可用 email magic link，之後再�
 
 正式導入已完成一次 snapshot-to-Postgres 匯入，保留原始來源 URL、座標與穩定 `external_id`，並讓現有 JSON 仍可作為故障時的唯讀 fallback。資料庫 schema、RLS policy、seed / import script 已以 migration 形式納入 repo。
 
-最低可行部署依賴是：email 寄信設定、hosting 平台的兩個公開 build env，以及一名管理員。Anonymous Sign-Ins 在 CAPTCHA / Edge Function 反濫用方案完成前維持關閉；不能宣稱匿名投稿已有強驗證。
+最低可行部署依賴是：email 寄信設定、hosting 平台的公開 build env（Supabase URL、publishable key、Turnstile site key）、正式網域和一名管理員。Anonymous Sign-Ins 目前仍關閉；Turnstile 與每匿名身分每小時 3 筆的限制已配置，但正式開啟後仍須驗證實際投稿流程與濫用風險。
 
 ## 建議試行順序
 
 1. 在 repo 維護 schema migration、型別/驗證、前端 feature flag 與唯讀 fallback；不直接把待複核資料當成正式名錄。
 2. 以永久測試帳號驗證 Auth、RLS 和提案/星評流程；目前遠端已確認 86 筆 markets、proposals 為 0，內部帳號欄位不可由公開 REST 讀取。
-3. 決定 CAPTCHA / 反濫用方案後，再開啟 Anonymous Sign-Ins 並驗證：匿名投稿必須在同一 transaction 寫入來源；`is_anonymous = true` 不能投票/評星；永久會員同帳號重投只更新原票；一般會員不能改狀態或 audit。
-4. 部署 staging，觀察投稿重複率、來源可查性、平均等待時間和垃圾內容，再決定 Turnstile、表決期限與採用門檻。
+3. 確認 Anonymous Sign-Ins 開啟後，驗證：匿名投稿與來源一起持久保存；`is_anonymous = true` 不能投票/評星；永久會員同帳號重投只更新原票；一般會員不能改狀態或 audit。
+4. 部署 staging，觀察投稿重複率、來源可查性、平均等待時間和垃圾內容，再決定表決期限與採用門檻。
 5. 試行穩定後才把相同流程開放到其他縣市，並定期匯入或人工核對政府快照。
 
 這個方案能先把靜態名錄和社群提案解耦，保留目前頁面可運作；真正的跨使用者資料、登入、票數唯一性和決策追溯則由 Supabase schema / RLS 提供。遠端 schema、seed 與公開 REST 權限已驗證；永久會員登入、投稿流程和跨瀏覽器同步仍需測試。
