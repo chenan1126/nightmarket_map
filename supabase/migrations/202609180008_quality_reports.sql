@@ -106,7 +106,9 @@ begin
   from public.quality_reports qr
   where qr.submitted_by = actor
     and qr.submitted_at >= now() - interval '1 hour';
-  if recent_count >= case when (auth.jwt() ->> 'is_anonymous') = 'true' then 5 else 20 end then
+  if recent_count >= (
+    case when (auth.jwt() ->> 'is_anonymous') = 'true' then 5 else 20 end
+  ) then
     raise exception 'quality report rate limit exceeded; try again later';
   end if;
 
