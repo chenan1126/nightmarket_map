@@ -94,4 +94,4 @@ Supabase Auth 負責會員登入（第一版可用 email magic link，之後再�
 
 這個方案能先把靜態名錄和社群提案解耦，保留目前頁面可運作；真正的跨使用者資料、登入、票數唯一性和決策追溯則由 Supabase schema / RLS 提供。遠端 schema、seed 與公開 REST 權限已驗證；永久會員登入、投稿流程和跨瀏覽器同步仍需測試。
 
-目前 repo 已完成前端可選整合：首頁可直接提交新增夜市，夜市頁可提交攤位提案；提案來源、狀態與資料庫維護的表決彙總會顯示在列表。星評只在管理流程將提案標為 `adopted` 並填入 `adopted_stall_id` 後出現。`scripts/generate-markets-seed.mjs` 可將現有 86 筆 JSON 以 `external_id` 產生可重複執行的 `needs_review` seed SQL。遠端已部署 migrations 與 seed；Anonymous Sign-Ins、正式 redirect 網域和永久會員跨瀏覽器驗證仍待決定或測試。
+目前 repo 已完成前端可選整合：首頁可直接提交新增夜市，夜市頁可提交攤位提案；提案來源、狀態與資料庫維護的表決彙總會顯示在列表。星評只在管理流程將提案標為 `adopted` 並填入 `adopted_stall_id` 後出現。`scripts/generate-markets-seed.mjs` 可將現有 86 筆 JSON 以 `external_id` 產生可重複執行的 `needs_review` seed SQL。遠端已部署 migrations 與 seed。匿名登入、兩筆有來源的待確認攤位投稿及重新載入後讀回已在本機 Web 實際驗證；正式 redirect 網域、永久會員跨瀏覽器登入／投票及星評仍待測試。
