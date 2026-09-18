@@ -17,8 +17,10 @@ Web 沒有設定 Supabase 時會維持唯讀名錄，不會假稱投稿或評分
 
 ```text
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
-VITE_SUPABASE_ANON_KEY=<public-anon-key>
+VITE_SUPABASE_PUBLISHABLE_KEY=<publishable-key>
 ```
+
+舊部署也可繼續使用 `VITE_SUPABASE_ANON_KEY`；前端會將它視為相同的瀏覽器公開金鑰。
 
 同時在 Supabase Authentication 開啟 Anonymous Sign-Ins、設定 email magic-link redirect URL，並先把名錄匯入 `markets`（將 JSON 的字串 `id` 放入 `external_id`）。`service_role` key 不得放入前端或 repo。完整的 RLS 邊界與本機驗證方式見 [`supabase/README.md`](supabase/README.md)。
 

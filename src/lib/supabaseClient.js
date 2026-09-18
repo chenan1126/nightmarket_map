@@ -1,7 +1,12 @@
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim();
+// Supabase now labels the browser-safe key as a publishable key. Keep the
+// legacy anon variable as a fallback so existing deployments continue to work.
+const supabasePublishableKey = (
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+  || import.meta.env.VITE_SUPABASE_ANON_KEY
+)?.trim();
 
-export const supabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
-export const supabase = supabaseConfigured ? createClient(supabaseUrl, supabaseAnonKey) : null;
+export const supabaseConfigured = Boolean(supabaseUrl && supabasePublishableKey);
+export const supabase = supabaseConfigured ? createClient(supabaseUrl, supabasePublishableKey) : null;
