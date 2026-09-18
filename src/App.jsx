@@ -1,322 +1,121 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import L from 'leaflet';
-import {
-  ArrowRight,
-  Bookmark,
-  Check,
-  ChevronDown,
-  CircleHelp,
-  Clock3,
-  Compass,
-  Heart,
-  LocateFixed,
-  Map as MapIcon,
-  MapPin,
-  Menu,
-  Minus,
-  Navigation,
-  Plus,
-  Search,
-  Share2,
-  Sparkles,
-  Star,
-  X,
-} from 'lucide-react';
-import {
-  Circle,
-  CircleMarker,
-  MapContainer,
-  Marker,
-  Polyline,
-  TileLayer,
-  ZoomControl,
-  useMap,
-  useMapEvents,
-} from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, useMap } from 'react-leaflet';
+import { MapPin, LocateFixed, Search, Plus, Database, ArrowRight, X, Check, Info, LogIn, LogOut, Send, Star, LoaderCircle, ExternalLink } from 'lucide-react';
+import { supabase, supabaseConfigured } from './lib/supabaseClient';
 import 'leaflet/dist/leaflet.css';
-import { INITIAL_STALLS, MARKET_CENTER } from '../packages/shared/src/stalls.js';
 
-const initialStalls = INITIAL_STALLS;
+const CITY_CENTERS = { 臺北市: [25.04, 121.52], 新北市: [25.01, 121.46], 桃園市: [24.99, 121.30], 臺中市: [24.15, 120.67], 臺南市: [22.99, 120.20], 花蓮縣: [23.99, 121.60], 臺東縣: [22.76, 121.14] };
+const PROTOTYPE_STALLS = [
+  { id: 'prototype-1', name: '陳董藥燉排骨', city: '臺北市', district: '松山區', type: '主食', emoji: '🍲', note: '饒河街原型攤位資料', address: '饒河街觀光夜市', source: 'prototype seed data' },
+  { id: 'prototype-2', name: '福州世祖胡椒餅', city: '臺北市', district: '松山區', type: '主食', emoji: '🥙', note: '饒河街原型攤位資料', address: '饒河街觀光夜市', source: 'prototype seed data' },
+  { id: 'prototype-3', name: '阿國滷味', city: '臺北市', district: '松山區', type: '主食', emoji: '🍢', note: '饒河街原型攤位資料', address: '饒河街觀光夜市', source: 'prototype seed data' },
+];
 
-const categories = ['全部', '主食', '甜點', '飲品', '伴手禮'];
-const addStallSchema = z.object({
-  name: z.string().trim().min(2, '請至少輸入 2 個字'),
-  type: z.string().min(1),
-  price: z.string().min(1),
-  note: z.string().trim().max(120, '推薦短句最多 120 字').optional(),
-});
-
-function Stars({ rating, small = false }) {
-  return (
-    <span className={`stars ${small ? 'stars-small' : ''}`} aria-label={`${rating} 顆星`}>
-      {Array.from({ length: 5 }, (_, index) => (
-        <Star key={index} size={small ? 12 : 14} fill={index < Math.round(rating) ? 'currentColor' : 'none'} />
-      ))}
-    </span>
-  );
-}
-
-function BrandMark() {
-  return (
-    <div className="brand-mark" aria-hidden="true">
-      <MapPin size={20} strokeWidth={2.4} />
-    </div>
-  );
-}
-
-function MapViewport({ selectedId, onSelect, onLocate, zoomSignal }) {
+function MapCenter({ city, userLocation, markets, onSelect }) {
   const map = useMap();
-
-  useEffect(() => {
-    if (zoomSignal) map.setZoom(Math.max(13, Math.min(19, map.getZoom() + zoomSignal)));
-  }, [map, zoomSignal]);
-
-  useEffect(() => {
-    if (selectedId) {
-      const stall = initialStalls.find((item) => item.id === selectedId);
-      if (stall) map.flyTo(stall.location, Math.max(map.getZoom(), 16), { duration: 0.5 });
-    }
-  }, [map, selectedId]);
-
-  useMapEvents({
-    locationfound: (event) => onLocate([event.latlng.lat, event.latlng.lng]),
-  });
-
-  return (
-    <>
-      <div className="map-topographic" aria-hidden="true" />
-      <div className="map-market-label"><span className="market-label-dot" />饒河街觀光夜市</div>
-      <div className="map-road-label road-label-one">八德路四段</div>
-      <div className="map-road-label road-label-two">塔悠路</div>
-      <Polyline positions={[[25.05012, 121.5757], [25.05042, 121.5767], [25.05085, 121.5787]]} pathOptions={{ color: '#f28a58', weight: 11, opacity: 0.82, lineCap: 'round' }} />
-      <Polyline positions={[[25.04975, 121.5776], [25.05154, 121.5776]]} pathOptions={{ color: '#f5bb75', weight: 9, opacity: 0.84, lineCap: 'round' }} />
-      <Circle center={MARKET_CENTER} radius={155} pathOptions={{ color: '#ea7554', weight: 1.5, dashArray: '7 8', fillColor: '#f8caa2', fillOpacity: 0.14 }} />
-      {initialStalls.map((stall) => (
-        <Marker
-          key={stall.id}
-          position={stall.location}
-          icon={L.divIcon({
-            className: `stall-map-marker ${selectedId === stall.id ? 'is-selected' : ''}`,
-            html: `<span>${stall.emoji}</span>`,
-            iconSize: [42, 42],
-            iconAnchor: [21, 21],
-          })}
-          eventHandlers={{ click: () => onSelect(stall.id) }}
-          title={stall.name}
-        />
-      ))}
-      <CircleMarker center={MARKET_CENTER} radius={7} pathOptions={{ color: '#fff', weight: 3, fillColor: '#367d8d', fillOpacity: 1 }} />
-    </>
-  );
+  useEffect(() => { map.flyTo(userLocation || CITY_CENTERS[city] || [23.7, 120.9], userLocation ? 12 : 8, { duration: .45 }); }, [map, city, userLocation]);
+  return <>{markets.filter((item) => item.latitude != null && (city === '全部' || item.city === city)).map((item) => <CircleMarker key={item.id} center={[item.latitude, item.longitude]} radius={9} pathOptions={{ color: '#fffdf8', weight: 3, fillColor: '#df6c43', fillOpacity: 1 }} eventHandlers={{ click: () => onSelect(item) }}><title>{item.name}</title></CircleMarker>)}{userLocation && <CircleMarker center={userLocation} radius={8} pathOptions={{ color: '#fff', weight: 3, fillColor: '#367d8d', fillOpacity: 1 }} />}</>;
 }
 
-function MarketMap({ selectedId, onSelect, showToast }) {
-  const [locating, setLocating] = useState(false);
-  const [zoomSignal, setZoomSignal] = useState(0);
-  const [userLocation, setUserLocation] = useState(null);
-
-  const locate = () => {
-    setLocating(true);
-    navigator.geolocation?.getCurrentPosition(
-      (position) => {
-        setUserLocation([position.coords.latitude, position.coords.longitude]);
-        setLocating(false);
-        showToast('已定位到你的位置');
-      },
-      () => {
-        setLocating(false);
-        showToast('目前無法取得位置，先以夜市入口為中心');
-      },
-      { enableHighAccuracy: true, timeout: 5000 },
-    );
-  };
-
-  return (
-    <section className="map-panel" aria-label="饒河街觀光夜市地圖">
-      <MapContainer center={MARKET_CENTER} zoom={16} zoomControl={false} scrollWheelZoom>
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <MapViewport selectedId={selectedId} onSelect={onSelect} onLocate={setUserLocation} zoomSignal={zoomSignal} />
-        {userLocation && <CircleMarker center={userLocation} radius={8} pathOptions={{ color: '#fff', weight: 3, fillColor: '#367d8d', fillOpacity: 1 }} />}
-        <ZoomControl position="bottomright" />
-      </MapContainer>
-      <div className="map-headline">
-        <div className="map-kicker"><span className="live-dot" />正在逛</div>
-        <h2>饒河街觀光夜市</h2>
-        <p>6 個攤位 · 約 2 小時前有人更新</p>
-      </div>
-      <div className="map-actions" aria-label="地圖操作">
-        <button className="map-action-button" onClick={() => { setZoomSignal(1); }} aria-label="放大地圖"><Plus size={18} /></button>
-        <button className="map-action-button" onClick={() => { setZoomSignal(-1); }} aria-label="縮小地圖"><Minus size={18} /></button>
-        <button className="map-action-button" onClick={locate} aria-label="定位到我的位置"><LocateFixed size={18} className={locating ? 'spin' : ''} /></button>
-      </div>
-      <div className="map-key">
-        <span><i className="key-marker key-marker-orange" />攤位</span>
-        <span><i className="key-marker key-marker-blue" />夜市入口</span>
-      </div>
-      <div className="map-credit">地圖資料 © OpenStreetMap</div>
-    </section>
-  );
+function distanceKm(from, item) {
+  if (!from || item.latitude == null || item.longitude == null) return null;
+  const [lat, lon] = from; const rad = Math.PI / 180; const a = Math.sin((item.latitude - lat) * rad / 2) ** 2 + Math.cos(lat * rad) * Math.cos(item.latitude * rad) * Math.sin((item.longitude - lon) * rad / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function StallCard({ stall, saved, selected, onSelect, onToggleSave }) {
-  return (
-    <article className={`stall-card ${selected ? 'is-selected' : ''}`}>
-      <button className="stall-card-main" onClick={() => onSelect(stall.id)} aria-label={`查看 ${stall.name} 詳情`}>
-        <div className="stall-photo" style={{ '--stall-color': stall.color }}><span>{stall.emoji}</span>{stall.status === 'open' && <i className="open-indicator" />}</div>
-        <div className="stall-copy">
-          <div className="stall-card-topline"><span className="stall-name">{stall.name}</span><span className={stall.status === 'open' ? 'open-text' : 'closed-text'}>{stall.status === 'open' ? '營業中' : '已打烊'}</span></div>
-          <p className="stall-category">{stall.type} · {stall.distance.toFixed(1)} 公里</p>
-          <div className="stall-rating"><Stars rating={stall.rating} small /><strong>{stall.rating.toFixed(1)}</strong><span>({stall.reviews})</span><em>{stall.price}</em></div>
-        </div>
-      </button>
-      <button className={`save-button ${saved ? 'is-saved' : ''}`} onClick={() => onToggleSave(stall.id)} aria-label={`${saved ? '取消收藏' : '收藏'} ${stall.name}`}>
-        <Bookmark size={17} fill={saved ? 'currentColor' : 'none'} />
-      </button>
-    </article>
-  );
+const isAnonymousUser = (user) => user?.is_anonymous === true || user?.user_metadata?.is_anonymous === true;
+const proposalStatusLabel = { pending: '待確認', discussion: '討論中', needs_evidence: '待補資料', adopted: '已採用', rejected: '未採用' };
+
+function AuthPanel({ user, authBusy, authMessage, email, setEmail, onSendMagicLink, onSignOut }) {
+  if (!supabaseConfigured) return <div className="community-status offline"><Info size={16} /><span>社群功能尚未連線；目前只顯示唯讀名錄。設定 Supabase 環境變數後才會開放投稿、登入與評分。</span></div>;
+  if (user && !isAnonymousUser(user)) return <div className="community-status online"><span><b>已登入會員</b><small>{user.email}</small></span><button className="text-button" onClick={onSignOut}><LogOut size={15} /> 登出</button></div>;
+  return <div className="community-status auth-form"><div><b>{user ? '可免登入投稿' : '登入後可參與表決與星評'}</b><small>{user ? '目前是暫時投稿身分；表決和星評仍需會員登入。' : '投稿可免登入，表決和星評需要 email magic link。'}</small></div><form onSubmit={onSendMagicLink}><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="你的 email" required /><button className="text-button" disabled={authBusy}>{authBusy ? <LoaderCircle className="spin" size={15} /> : <LogIn size={15} />} 寄送登入連結</button></form>{authMessage && <small className="community-message">{authMessage}</small>}</div>;
 }
 
-function StallDetail({ stall, saved, onClose, onToggleSave, onRate, onShare }) {
-  const [showRating, setShowRating] = useState(false);
-  if (!stall) return null;
-
-  return (
-    <aside className="detail-card" aria-live="polite">
-      <button className="detail-close" onClick={onClose} aria-label="關閉攤位詳情"><X size={17} /></button>
-      <div className="detail-identity">
-        <div className="detail-emoji" style={{ '--stall-color': stall.color }}>{stall.emoji}</div>
-        <div><div className="detail-eyebrow">{stall.status === 'open' ? '現在營業中' : '今天已打烊'}</div><h3>{stall.name}</h3><p>{stall.type} · {stall.price}</p></div>
-      </div>
-      <div className="detail-score"><Stars rating={stall.rating} /><strong>{stall.rating.toFixed(1)}</strong><span>{stall.reviews} 則評分</span></div>
-      <p className="detail-note">{stall.note}</p>
-      <div className="detail-meta"><span><Clock3 size={14} />最後更新 {stall.updated}</span><span><Navigation size={14} />步行約 {Math.max(2, Math.round(stall.distance * 8))} 分鐘</span></div>
-      <div className="detail-actions"><button className="detail-primary" onClick={() => setShowRating((value) => !value)}><Star size={15} />幫它評分</button><button className={`detail-secondary ${saved ? 'is-saved' : ''}`} onClick={() => onToggleSave(stall.id)}><Bookmark size={15} fill={saved ? 'currentColor' : 'none'} />{saved ? '已收藏' : '收藏'}</button><button className="detail-icon-button" onClick={() => onShare(stall)} aria-label="分享攤位"><Share2 size={16} /></button></div>
-      {showRating && <div className="rating-picker"><span>你的評分</span>{[1, 2, 3, 4, 5].map((score) => <button key={score} onClick={() => { onRate(stall, score); setShowRating(false); }} aria-label={`${score} 顆星`}><Star size={20} fill="currentColor" /></button>)}</div>}
-    </aside>
-  );
-}
-
-function RecommendModal({ open, onClose, onSubmit }) {
-  const { register, handleSubmit, reset, formState: { errors, isSubmitting } } = useForm({ resolver: zodResolver(addStallSchema), defaultValues: { type: '主食', price: '$50–100', note: '' } });
-  useEffect(() => { if (!open) reset({ type: '主食', price: '$50–100', note: '' }); }, [open, reset]);
-  if (!open) return null;
-
-  return (
-    <div className="modal-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section className="recommend-modal" role="dialog" aria-modal="true" aria-labelledby="recommend-title">
-        <div className="modal-heading"><div><div className="modal-kicker"><Sparkles size={14} />共同維護地圖</div><h2 id="recommend-title">推薦一個好攤位</h2><p>把你私藏的味道，留給下一個來逛的人。</p></div><button className="modal-close" onClick={onClose} aria-label="關閉推薦表單"><X size={19} /></button></div>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <label className="form-field form-field-full"><span>攤位名稱</span><input {...register('name')} placeholder="例如：阿嬤的臭豆腐" />{errors.name && <small>{errors.name.message}</small>}</label>
-          <div className="form-row"><label className="form-field"><span>分類</span><select {...register('type')}><option>主食</option><option>甜點</option><option>飲品</option><option>伴手禮</option></select></label><label className="form-field"><span>大約價格</span><select {...register('price')}><option>$50 以下</option><option>$50–100</option><option>$100–200</option><option>$200 以上</option></select></label></div>
-          <label className="form-field form-field-full"><span>一句話推薦 <em>選填</em></span><textarea {...register('note')} placeholder="你最喜歡它的哪一點？" />{errors.note && <small>{errors.note.message}</small>}</label>
-          <div className="form-tip"><Check size={15} />送出後會先標記為「社群新增」，讓大家一起補充資料。</div>
-          <div className="modal-footer"><button type="button" className="text-button" onClick={onClose}>先不推薦</button><button type="submit" className="submit-button" disabled={isSubmitting}>送出推薦 <ArrowRight size={16} /></button></div>
-        </form>
-      </section>
-    </div>
-  );
+function ContributionForm({ selected, user, marketDbId, busy, onSubmit, onClose }) {
+  const [kind, setKind] = useState(selected ? 'stall' : 'market');
+  const [name, setName] = useState('');
+  const [cityName, setCityName] = useState(selected?.city || '');
+  const [district, setDistrict] = useState(selected?.district || '');
+  const [address, setAddress] = useState('');
+  const [locationNote, setLocationNote] = useState('');
+  const [sourceUrl, setSourceUrl] = useState('');
+  const [sourceTitle, setSourceTitle] = useState('');
+  const [note, setNote] = useState('');
+  const submit = (event) => { event.preventDefault(); onSubmit({ kind, name, cityName, district, address, locationNote, sourceUrl, sourceTitle, note, marketId: kind === 'stall' ? marketDbId : null }); };
+  return <form className="contribution-form" onSubmit={submit}><div className="form-heading"><div><span className="section-label">新增提案</span><h3>{selected ? `補充「${selected.name}」` : '新增夜市'}</h3></div><button type="button" className="modal-close" onClick={onClose} aria-label="關閉"><X size={18} /></button></div><label>類型<select value={kind} onChange={(event) => setKind(event.target.value)}><option value="market">新增夜市</option>{selected && <option value="stall">新增攤位</option>}</select></label>{kind === 'stall' && !marketDbId && <div className="inline-warning"><Info size={15} /> 此夜市尚未同步到共同資料庫，暫時無法提交攤位提案。</div>}<label>名稱<input value={name} onChange={(event) => setName(event.target.value)} required maxLength={200} placeholder="例如：阿明蚵仔煎" /></label>{kind === 'market' && <><label>縣市<input value={cityName} onChange={(event) => setCityName(event.target.value)} required maxLength={100} placeholder="例如：桃園市" /></label><label>區域<input value={district} onChange={(event) => setDistrict(event.target.value)} required maxLength={100} placeholder="例如：中壢區" /></label><label>地址或明確位置描述<input value={address} onChange={(event) => setAddress(event.target.value)} required maxLength={500} placeholder="例如：中央西路與中美路附近" /></label></>}{kind === 'stall' && <label>位置描述<input value={locationNote} onChange={(event) => setLocationNote(event.target.value)} required maxLength={500} placeholder="例如：入口右側第三排" /></label>}<label>資料來源 URL <input type="url" value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} required placeholder="https://…" /></label><label>來源名稱（選填）<input value={sourceTitle} onChange={(event) => setSourceTitle(event.target.value)} maxLength={200} /></label><label>補充說明（選填）<textarea value={note} onChange={(event) => setNote(event.target.value)} maxLength={1000} rows={3} /></label><p className="form-hint">送出後會以「待確認」公開顯示，來源會和提案一起保存；不會直接加入正式地圖。</p><button className="modal-action" disabled={busy || (kind === 'stall' && !marketDbId)}>{busy ? <LoaderCircle className="spin" size={16} /> : <Send size={16} />} 送出待確認提案</button></form>;
 }
 
 function App() {
-  const [stalls, setStalls] = useState(initialStalls);
-  const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('全部');
-  const [sort, setSort] = useState('popular');
-  const [activeView, setActiveView] = useState('explore');
-  const [selectedId, setSelectedId] = useState(1);
-  const [saved, setSaved] = useState(() => new Set(JSON.parse(localStorage.getItem('nightmarket-saved') || '[]')));
-  const [recommendOpen, setRecommendOpen] = useState(false);
-  const [toast, setToast] = useState('');
-  const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-
-  const selectedStall = stalls.find((stall) => stall.id === selectedId);
-  const visibleStalls = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    return stalls.filter((stall) => {
-      const matchesCategory = category === '全部' || stall.type === category;
-      const matchesView = activeView === 'explore' || saved.has(stall.id);
-      const matchesQuery = !normalized || `${stall.name}${stall.type}${stall.note}`.toLowerCase().includes(normalized);
-      return matchesCategory && matchesView && matchesQuery;
-    }).sort((first, second) => {
-      if (sort === 'nearest') return first.distance - second.distance;
-      if (sort === 'rating') return second.rating - first.rating;
-      if (sort === 'open') return Number(second.status === 'open') - Number(first.status === 'open');
-      return second.reviews - first.reviews;
-    });
-  }, [activeView, category, query, saved, sort, stalls]);
-
-  const showToast = (message) => {
-    setToast(message);
-    window.clearTimeout(window.nightmarketToast);
-    window.nightmarketToast = window.setTimeout(() => setToast(''), 2600);
+  const [data, setData] = useState(null); const [city, setCity] = useState('全部'); const [query, setQuery] = useState('');
+  const [userLocation, setUserLocation] = useState(null); const [locating, setLocating] = useState(false); const [prototype, setPrototype] = useState(false); const [selected, setSelected] = useState(null); const [toast, setToast] = useState('');
+  const [user, setUser] = useState(null); const [email, setEmail] = useState(''); const [authBusy, setAuthBusy] = useState(false); const [authMessage, setAuthMessage] = useState('');
+  const [communityBusy, setCommunityBusy] = useState(false); const [showContribution, setShowContribution] = useState(false); const [marketDbId, setMarketDbId] = useState(null); const [proposals, setProposals] = useState([]); const [marketProposals, setMarketProposals] = useState([]); const [ratingSummaries, setRatingSummaries] = useState({}); const [proposalBusy, setProposalBusy] = useState(false); const [proposalError, setProposalError] = useState('');
+  useEffect(() => { fetch('/data/night-markets.json').then((response) => response.json()).then(setData).catch(() => setToast('夜市資料載入失敗，請重新整理')); }, []);
+  useEffect(() => {
+    if (!supabase) return undefined;
+    let active = true;
+    supabase.auth.getSession().then(({ data: sessionData }) => { if (active) setUser(sessionData.session?.user || null); });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => { if (active) setUser(session?.user || null); });
+    return () => { active = false; listener.subscription.unsubscribe(); };
+  }, []);
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.from('proposals').select('id,payload,source_url,source_title,status,submitted_at,support_count,oppose_count,needs_evidence_count').eq('kind', 'market').is('market_id', null).order('submitted_at', { ascending: false }).limit(100).then(({ data, error }) => { if (!error) setMarketProposals((data || []).filter((proposal) => city === '全部' || proposal.payload?.city === city)); });
+  }, [city]);
+  const loadMarketProposals = async () => {
+    if (!supabase) return;
+    const { data, error } = await supabase.from('proposals').select('id,payload,source_url,source_title,status,submitted_at,support_count,oppose_count,needs_evidence_count').eq('kind', 'market').is('market_id', null).order('submitted_at', { ascending: false }).limit(100);
+    if (!error) setMarketProposals((data || []).filter((proposal) => city === '全部' || proposal.payload?.city === city));
   };
-
-  const toggleSave = (id) => {
-    setSaved((current) => {
-      const next = new Set(current);
-      if (next.has(id)) { next.delete(id); showToast('已從口袋名單移除'); } else { next.add(id); showToast('已加入你的口袋名單'); }
-      localStorage.setItem('nightmarket-saved', JSON.stringify([...next]));
-      return next;
-    });
+  const markets = data?.markets || []; const cities = useMemo(() => [...new Set(markets.map((item) => item.city))], [markets]);
+  const visible = useMemo(() => { const keyword = query.trim().toLowerCase(); const items = prototype ? PROTOTYPE_STALLS : markets; return items.filter((item) => (city === '全部' || item.city === city) && (!keyword || `${item.name}${item.city}${item.district}`.toLowerCase().includes(keyword))).map((item) => ({ ...item, distanceKm: distanceKm(userLocation, item) })).sort((a, b) => (a.distanceKm ?? 99999) - (b.distanceKm ?? 99999)); }, [city, markets, prototype, query, userLocation]);
+  const showToast = (message) => { setToast(message); window.setTimeout(() => setToast(''), 3200); };
+  const selectMarket = async (market) => {
+    setSelected(market); setShowContribution(false); setProposalError(''); setProposals([]); setRatingSummaries({}); setMarketDbId(null);
+    if (!supabaseConfigured || !supabase || prototype) return;
+    setCommunityBusy(true);
+    const { data: dbMarket, error: marketError } = await supabase.from('markets').select('id').eq('external_id', market.id).maybeSingle();
+    if (marketError) setProposalError(`共同資料載入失敗：${marketError.message}`);
+    if (dbMarket?.id) {
+      setMarketDbId(dbMarket.id);
+      const { data: proposalRows, error: proposalLoadError } = await supabase.from('proposals').select('id,kind,market_id,adopted_stall_id,payload,source_url,source_title,status,submitted_at,support_count,oppose_count,needs_evidence_count').eq('market_id', dbMarket.id).order('submitted_at', { ascending: false }).limit(50);
+      if (proposalLoadError) setProposalError(`提案載入失敗：${proposalLoadError.message}`); else setProposals(proposalRows || []);
+      const { data: ratingRows } = await supabase.from('stall_rating_summaries').select('stall_id,average_stars,rating_count');
+      setRatingSummaries(Object.fromEntries((ratingRows || []).map((row) => [row.stall_id, row])));
+    }
+    setCommunityBusy(false);
   };
-
-  const recommend = (formData) => {
-    const newStall = { id: Date.now(), name: formData.name, type: formData.type, emoji: formData.type === '甜點' ? '🍡' : formData.type === '飲品' ? '🥤' : '🍢', rating: 0, reviews: 0, distance: 0, price: formData.price, status: 'open', location: [25.0507, 121.5773], note: formData.note || '這是一個由社群剛補上的新攤位，歡迎留下第一則評價。', color: '#f2e5c8', updated: '剛剛新增' };
-    setStalls((current) => [newStall, ...current]);
-    setRecommendOpen(false);
-    setSelectedId(newStall.id);
-    showToast('謝謝你！攤位已加入地圖');
+  const sendMagicLink = async (event) => { event.preventDefault(); if (!supabase) return; setAuthBusy(true); setAuthMessage(''); const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin } }); setAuthMessage(error ? `登入連結寄送失敗：${error.message}` : '登入連結已寄出，請查看信箱後回到本頁。'); setAuthBusy(false); };
+  const signOut = async () => { if (supabase) await supabase.auth.signOut(); setAuthMessage('已登出'); };
+  const ensureAnonymous = async () => { if (!supabase) throw new Error('Supabase 尚未設定'); if (user) return user; const { data: authData, error } = await supabase.auth.signInAnonymously(); if (error) throw error; setUser(authData.user); return authData.user; };
+  const submitProposal = async ({ kind, name, cityName, district, address, locationNote, sourceUrl, sourceTitle, note, marketId }) => {
+    if (!supabase) { setProposalError('社群功能尚未連線，提案沒有送出。'); return; }
+    setProposalBusy(true); setProposalError('');
+    try {
+      const submitter = await ensureAnonymous();
+      const { data: proposal, error } = await supabase.from('proposals').insert({ kind, market_id: kind === 'stall' ? marketId : null, submitted_by: submitter.id, payload: { name: name.trim(), city: cityName?.trim() || null, district: district?.trim() || null, address: address?.trim() || null, location_note: locationNote?.trim() || null, note: note.trim(), external_market_id: kind === 'stall' ? (selected?.id || null) : null }, source_url: sourceUrl.trim(), source_title: sourceTitle.trim() || null, status: 'pending' }).select('id,kind,market_id,adopted_stall_id,payload,source_url,source_title,status,submitted_at,support_count,oppose_count,needs_evidence_count').single();
+      if (error) throw error;
+      setProposals((current) => [proposal, ...current]); if (kind === 'market') await loadMarketProposals(); setShowContribution(false); showToast('提案已送出，狀態為待確認');
+    } catch (error) { setProposalError(`提案沒有送出：${error.message}`); } finally { setProposalBusy(false); }
   };
-
-  const rate = (stall, score) => {
-    setStalls((current) => current.map((item) => item.id === stall.id ? { ...item, rating: item.reviews ? Number(((item.rating * item.reviews + score) / (item.reviews + 1)).toFixed(1)) : score, reviews: item.reviews + 1 } : item));
-    showToast(`已留下 ${score} 顆星，謝謝你的分享`);
+  const voteOnProposal = async (proposalId, choice) => {
+    if (!supabase) { setProposalError('社群功能尚未連線，表決沒有送出。'); return; }
+    if (!user || isAnonymousUser(user)) { setAuthMessage('請先使用 email magic link 登入，才能參與表決。'); return; }
+    setProposalBusy(true); setProposalError(''); const { error } = await supabase.rpc('cast_proposal_vote', { p_proposal_id: proposalId, p_choice: choice }); if (error) setProposalError(`表決沒有送出：${error.message}`); else { showToast('你的表決已更新'); if (selected) await selectMarket(selected); else await loadMarketProposals(); } setProposalBusy(false);
   };
-
-  const share = async (stall) => {
-    const shareData = { title: stall.name, text: `${stall.name}｜夜市地圖`, url: window.location.href };
-    if (navigator.share) await navigator.share(shareData).catch(() => {});
-    else { await navigator.clipboard?.writeText(`${stall.name}｜夜市地圖`); showToast('攤位資訊已複製'); }
+  const rateStall = async (stallId, stars) => {
+    if (!supabase) { setProposalError('社群功能尚未連線，星評沒有送出。'); return; }
+    if (!user || isAnonymousUser(user)) { setAuthMessage('請先使用 email magic link 登入，才能留下星評。'); return; }
+    setProposalBusy(true); const { error } = await supabase.rpc('rate_adopted_stall', { p_stall_id: stallId, p_stars: stars }); if (error) setProposalError(`星評沒有送出：${error.message}`); else { showToast('你的星評已更新'); if (selected) await selectMarket(selected); } setProposalBusy(false);
   };
-
-  return (
-    <div className="app-shell">
-      <header className="topbar">
-        <button className="mobile-menu-button" onClick={() => setMobileNavOpen((value) => !value)} aria-label="開啟選單"><Menu size={21} /></button>
-        <a className="brand" href="/" aria-label="夜市地圖首頁"><BrandMark /><span><strong>夜市地圖</strong><small>MARKET MAP</small></span></a>
-        <button className="market-switcher" onClick={() => showToast('目前先提供饒河街，更多夜市即將加入')}>饒河街觀光夜市 <ChevronDown size={15} /></button>
-        <label className={`search-box ${mobileSearchOpen ? 'mobile-search-open' : ''}`} onClick={() => { if (window.innerWidth <= 760) setMobileSearchOpen(true); }}><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜尋攤位、料理或夜市…" type="search" aria-label="搜尋攤位、料理或夜市" /><kbd>⌘ K</kbd></label>
-        <nav className={`top-nav ${mobileNavOpen ? 'is-open' : ''}`}><button onClick={() => { setActiveView('explore'); setMobileNavOpen(false); }}>探索</button><button onClick={() => { setActiveView('saved'); setMobileNavOpen(false); }}>我的口袋 <span>{saved.size}</span></button><button onClick={() => showToast('社群功能即將開放')}>社群</button></nav>
-        <div className="header-actions"><button className="help-button" onClick={() => showToast('點選攤位可查看詳情，按書籤加入口袋名單')} aria-label="使用說明"><CircleHelp size={18} /></button><button className="recommend-button" onClick={() => setRecommendOpen(true)}><Plus size={16} />推薦攤位</button><button className="avatar" onClick={() => showToast('嗨，林同學！')} aria-label="個人檔案">林</button></div>
-      </header>
-
-      <main className="workspace">
-        <aside className="explore-panel">
-          <div className="panel-inner">
-            <div className="panel-intro"><div className="location-line"><span className="location-pulse" />台北市 · 松山區</div><h1>{activeView === 'saved' ? '我的口袋名單' : '今晚，想吃哪一攤？'}</h1><p>{activeView === 'saved' ? `你收藏了 ${saved.size} 個想吃的攤位` : '由大家一起更新的夜市地圖，邊走邊發現。'}</p></div>
-            <div className="view-tabs"><button className={activeView === 'explore' ? 'is-active' : ''} onClick={() => setActiveView('explore')}><MapIcon size={15} />探索地圖</button><button className={activeView === 'saved' ? 'is-active' : ''} onClick={() => setActiveView('saved')}><Bookmark size={15} />口袋名單 <span>{saved.size}</span></button></div>
-            <div className="filter-bar"><div className="filter-label">分類</div><div className="category-scroll">{categories.map((item) => <button key={item} className={category === item ? 'is-active' : ''} onClick={() => setCategory(item)}>{item}</button>)}</div></div>
-            <div className="list-toolbar"><div><strong>{visibleStalls.length}</strong> 個攤位</div><div className="sort-menu"><span>排序</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="popular">人氣優先</option><option value="open">營業中優先</option><option value="nearest">離我最近</option><option value="rating">評分最高</option></select><ChevronDown size={13} /></div></div>
-            <div className="stall-list">{visibleStalls.length ? visibleStalls.map((stall) => <StallCard key={stall.id} stall={stall} saved={saved.has(stall.id)} selected={selectedId === stall.id} onSelect={setSelectedId} onToggleSave={toggleSave} />) : <div className="empty-state"><div className="empty-icon"><Compass size={21} /></div><strong>還沒有符合的攤位</strong><p>換個關鍵字，或推薦一攤給大家。</p><button onClick={() => { setQuery(''); setCategory('全部'); setActiveView('explore'); }}>清除篩選</button></div>}</div>
-            <div className="community-card"><div className="community-visual"><span>✦</span><span>✦</span><span>✦</span></div><div><div className="community-kicker">本週共同筆記</div><h2>第一次來，先逛這 3 攤</h2><p>大家最近最常收藏的饒河街路線。</p><button onClick={() => showToast('已為你整理好 3 攤路線')}>查看路線 <ArrowRight size={14} /></button></div></div>
-            <footer className="panel-footer"><span><span className="footer-dot" />資料由社群共同維護</span><button onClick={() => showToast('感謝你一起讓夜市地圖更完整')}>回報錯誤</button></footer>
-          </div>
-        </aside>
-        <MarketMap selectedId={selectedId} onSelect={setSelectedId} showToast={showToast} />
-      </main>
-      <StallDetail stall={selectedStall} saved={selectedStall ? saved.has(selectedStall.id) : false} onClose={() => setSelectedId(null)} onToggleSave={toggleSave} onRate={rate} onShare={share} />
-      <RecommendModal open={recommendOpen} onClose={() => setRecommendOpen(false)} onSubmit={recommend} />
-      {toast && <div className="toast"><Check size={15} /><span>{toast}</span></div>}
-      <button className="mobile-recommend" onClick={() => setRecommendOpen(true)}><Plus size={16} />推薦攤位</button>
-    </div>
-  );
+  const locate = () => { if (!navigator.geolocation) { showToast('此瀏覽器不支援定位，請改用縣市選擇'); return; } setLocating(true); navigator.geolocation.getCurrentPosition((position) => { setUserLocation([position.coords.latitude, position.coords.longitude]); showToast('已取得你的位置；目前資料仍需補齊座標才能計算距離'); setLocating(false); }, () => { showToast('定位未授權，請用上方縣市選擇'); setLocating(false); }, { timeout: 7000 }); };
+  return <div className="registry-app">
+    <header className="registry-header"><a className="registry-brand" href="/"><span><MapPin size={20} /></span><b>夜市地圖</b><small>全台名錄</small></a><div className="header-source"><Database size={15} /> 經濟部夜市資料集 <a href="https://data.gov.tw/dataset/95760" target="_blank" rel="noreferrer">95760</a></div><button className="header-contribute" disabled={!supabaseConfigured} onClick={() => setShowContribution(true)}><Plus size={16} /> 新增夜市</button></header>
+    <main className="registry-main"><section className="registry-intro"><div className="eyebrow">TAIWAN NIGHT MARKET REGISTRY</div><h1>先找到你附近的夜市。</h1><p>固定地點、定期營業的夜市名錄，從官方資料開始，交給各地貢獻者一起補完整。</p><div className="location-controls"><button className="locate-button" onClick={locate}><LocateFixed size={16} className={locating ? 'spin' : ''} /> {locating ? '定位中…' : '使用我的位置'}</button><label><span>或選擇縣市</span><select value={city} onChange={(event) => setCity(event.target.value)}><option value="全部">全台</option>{cities.map((item) => <option key={item}>{item}</option>)}</select></label><label className="search-input"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜尋夜市名稱" /></label></div></section><AuthPanel user={user} authBusy={authBusy} authMessage={authMessage} email={email} setEmail={setEmail} onSendMagicLink={sendMagicLink} onSignOut={signOut} />{showContribution && !selected && <section className="standalone-contribution"><ContributionForm selected={null} user={user} marketDbId={null} busy={proposalBusy} onSubmit={submitProposal} onClose={() => setShowContribution(false)} /></section>}
+      <section className="registry-stats"><div><strong>{markets.length}</strong><span>快照名錄</span></div><div><strong>{cities.length}</strong><span>縣市</span></div><div><strong>{markets.filter((item) => item.latitude).length}</strong><span>可定位點位</span></div><button className={prototype ? 'prototype-toggle active' : 'prototype-toggle'} onClick={() => setPrototype((value) => !value)}>{prototype ? '返回快照名錄' : '查看饒河街原型資料'} <ArrowRight size={15} /></button></section>
+      <div className="registry-grid"><section className="market-list"><div className="list-heading"><div><span className="section-label">{userLocation ? '依距離排序' : '可探索夜市'}</span><h2>{city === '全部' ? '政府快照名錄' : `${city}的夜市`}</h2></div><span className="result-count">{visible.length} 筆</span></div>{prototype && <div className="prototype-note"><Info size={16} /><span>這是原型用的饒河街攤位資料，尚未接入全台名錄與共同資料庫。</span></div>}<div className="snapshot-note"><Info size={15} /> 2026-09-18 非即時快照；候選資料仍待人工複核，不能視為完整即時全台名錄。</div><div className="market-cards">{visible.map((market) => <button key={market.id} className="market-card" onClick={() => selectMarket(market)}><span className="market-icon"><MapPin size={19} /></span><span className="market-card-copy"><b>{market.name}</b><small>{market.city} · {market.district}{market.distanceKm != null ? ` · 約 ${market.distanceKm.toFixed(1)} 公里` : ''}</small><em>{market.address || '地址待官方 CSV 匯入'}</em></span><span className="market-status">{market.reviewStatus === '待複核候選' ? '待複核' : market.coordinateStatus === 'unverified' ? '座標待核對' : '入口/商圈近似'}</span></button>)}{!visible.length && <div className="empty-result">找不到符合的夜市，試試選擇其他縣市。</div>}</div></section><section className="registry-map"><MapContainer center={[23.7, 120.9]} zoom={7} zoomControl={false} scrollWheelZoom><TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" /><MapCenter city={city} userLocation={userLocation} markets={markets} onSelect={selectMarket} /></MapContainer><div className="map-overlay"><span className="map-tag"><span /> 可定位點位</span><b>{city === '全部' ? '快照夜市分布' : `${city}夜市`}</b><p>{userLocation ? '已依可定位點位計算約略距離。' : '點選橘色點位查看夜市詳情。'}</p></div><div className="map-footnote">地圖底圖 © OpenStreetMap · 點位為入口或商圈近似位置</div></section></div>
+      <section className="market-proposal-feed"><div className="list-heading"><div><span className="section-label">尚待確認的新增夜市</span><h2>{city === '全部' ? '全台提案' : `${city}提案`}</h2></div><span className="result-count">{marketProposals.length} 筆</span></div>{!supabaseConfigured && <p className="form-hint">Supabase 尚未設定；新增夜市提案列表會在連線後顯示。</p>}{supabaseConfigured && !marketProposals.length && <p className="form-hint">目前沒有符合縣市的新增夜市提案。</p>}{marketProposals.map((proposal) => <article className="proposal-card" key={proposal.id}><div><b>{proposal.payload?.name || '未命名夜市'}</b><span className="proposal-status">{proposalStatusLabel[proposal.status] || proposal.status}</span></div><p>{proposal.payload?.city}・{proposal.payload?.district}・{proposal.payload?.address}</p><a href={proposal.source_url} target="_blank" rel="noreferrer">{proposal.source_title || proposal.source_url} <ExternalLink size={13} /></a><div className="vote-summary"><span>支持 {proposal.support_count || 0}</span><span>反對 {proposal.oppose_count || 0}</span><span>需補證據 {proposal.needs_evidence_count || 0}</span></div>{proposal.status !== 'rejected' && proposal.status !== 'adopted' && <div className="proposal-votes"><button disabled={proposalBusy || !user || isAnonymousUser(user)} onClick={() => voteOnProposal(proposal.id, 'support')}>支持</button><button disabled={proposalBusy || !user || isAnonymousUser(user)} onClick={() => voteOnProposal(proposal.id, 'oppose')}>反對</button><button disabled={proposalBusy || !user || isAnonymousUser(user)} onClick={() => voteOnProposal(proposal.id, 'needs_evidence')}>需補證據</button></div>}</article>)}</section><section className="contributor-callout"><div><span className="section-label">在地貢獻者</span><h2>你家附近的夜市，資料完整嗎？</h2><p>選一個夜市後，可以接著補充地址、營業日、攤位或回報變動。送出前會清楚標示為待審投稿，不會直接冒充公開資料。</p></div><button disabled={!supabaseConfigured} onClick={() => setShowContribution(true)}>新增夜市 <ArrowRight size={16} /></button></section></main>
+    {selected && <div className="market-modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && setSelected(null)}><section className="market-modal"><button className="modal-close" onClick={() => setSelected(null)} aria-label="關閉"><X size={18} /></button><span className="section-label">夜市入口</span><h2>{selected.name}</h2><p>{selected.city} · {selected.district}</p><div className="modal-detail"><span>資料來源</span><b>{selected.source || '政府資料快照'}</b>{selected.datasetSerial && <><span>快照紀錄</span><b>序號 {selected.datasetSerial} · 2026-09-18 非即時備份</b></>}<span>座標狀態</span><b>{selected.coordinateStatus === 'unverified' ? '尚未核對，不顯示精確距離' : selected.coordinatePrecision}</b>{selected.coordinateSource && <><span>座標連結</span><a href={selected.coordinateSource} target="_blank" rel="noreferrer">查看地圖來源 <ExternalLink size={13} /></a></>}</div>{communityBusy && <div className="community-loading"><LoaderCircle className="spin" size={15} /> 載入社群資料…</div>}{proposalError && <div className="inline-error"><Info size={15} /> {proposalError}</div>}<div className="modal-actions"><button className="modal-action" onClick={() => setShowContribution(true)}><Plus size={16} /> 新增提案</button><button className="modal-action secondary" onClick={() => selectMarket(selected)}><ArrowRight size={16} /> 重新整理提案</button></div>{showContribution && <ContributionForm selected={selected} user={user} marketDbId={marketDbId} busy={proposalBusy} onSubmit={submitProposal} onClose={() => setShowContribution(false)} />}<div className="proposal-list"><div className="proposal-list-heading"><span className="section-label">社群提案</span><span>{proposals.length} 筆</span></div>{!supabaseConfigured && <p className="form-hint">Supabase 尚未設定；提案、表決和星評不會假稱成功。</p>}{supabaseConfigured && !communityBusy && !proposals.length && <p className="form-hint">目前沒有這個夜市的公開提案。</p>}{proposals.map((proposal) => <article className="proposal-card" key={proposal.id}><div><b>{proposal.payload?.name || '未命名提案'}</b><span className="proposal-status">{proposalStatusLabel[proposal.status] || proposal.status}</span></div>{proposal.payload?.note && <p>{proposal.payload.note}</p>}<a href={proposal.source_url} target="_blank" rel="noreferrer">{proposal.source_title || proposal.source_url} <ExternalLink size={13} /></a><div className="vote-summary"><span>支持 {proposal.support_count || 0}</span><span>反對 {proposal.oppose_count || 0}</span><span>需補證據 {proposal.needs_evidence_count || 0}</span></div>{proposal.status !== 'rejected' && proposal.status !== 'adopted' && <div className="proposal-votes"><button disabled={proposalBusy || !user || isAnonymousUser(user)} onClick={() => voteOnProposal(proposal.id, 'support')}>支持</button><button disabled={proposalBusy || !user || isAnonymousUser(user)} onClick={() => voteOnProposal(proposal.id, 'oppose')}>反對</button><button disabled={proposalBusy || !user || isAnonymousUser(user)} onClick={() => voteOnProposal(proposal.id, 'needs_evidence')}>需補證據</button></div>}{proposal.status === 'adopted' && proposal.adopted_stall_id && <div className="adopted-rating"><span className="star-rating"><Star size={14} /> {ratingSummaries[proposal.adopted_stall_id] ? `${ratingSummaries[proposal.adopted_stall_id].average_stars} / 5（${ratingSummaries[proposal.adopted_stall_id].rating_count} 則）` : '尚無星評'}</span><span className="star-rating">留下評分 {[1, 2, 3, 4, 5].map((stars) => <button key={stars} disabled={proposalBusy || !user || isAnonymousUser(user)} onClick={() => rateStall(proposal.adopted_stall_id, stars)}>{stars}</button>)}</span></div>}{proposal.status === 'adopted' && !proposal.adopted_stall_id && <p className="form-hint">待正式攤位建立後才可評星。</p>}</article>)}</div>{!user && supabaseConfigured && <p className="form-hint">登入後可表決；投稿可免登入。匿名投稿身分不能投票或星評。</p>}</section></div>}{toast && <div className="registry-toast"><Check size={16} />{toast}</div>}</div>;
 }
-
 export default App;
