@@ -32,6 +32,8 @@
 .map-details[open]>summary::after{content:'－'}
 .map-details>summary b{font-size:14px}.map-summary-hint{color:var(--muted);font-size:11px}
 .map-details .registry-map{margin:0;border:0;border-top:1px solid var(--line);border-radius:0}
+.map-loading,.map-load-error{display:flex;align-items:center;justify-content:center;gap:8px;min-height:330px;padding:24px;color:var(--muted);font-size:12px;text-align:center}
+.map-load-error{color:#a54c38;background:#fff0e9}
 @media(max-width:760px){.map-details>summary{display:grid;grid-template-columns:auto 1fr auto;gap:5px;padding:14px 16px}.map-summary-hint{grid-column:2/-1}.map-details .registry-map,.map-details .registry-map .leaflet-container{min-height:330px;height:330px}}
 
 /* Forum-first home layout */
