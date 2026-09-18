@@ -43,3 +43,15 @@
 .header-auth{display:inline-flex;align-items:center;gap:5px;padding:9px 11px;color:#fff;background:var(--ink);border-radius:8px;font-size:11px;font-weight:800}.header-readonly{color:var(--muted);font-size:10px;font-weight:800}.header-member{display:flex;align-items:center;gap:9px}.header-member>span{display:grid;gap:1px}.header-member b{font-size:11px}.header-member small{max-width:115px;overflow:hidden;color:var(--muted);font-size:9px;text-overflow:ellipsis;white-space:nowrap}.header-member button{display:inline-flex;align-items:center;gap:4px;padding:7px 8px;color:var(--ink);background:#f0eee8;border-radius:6px;font-size:10px;font-weight:800}
 .auth-form:not(.is-open){justify-content:space-between}.auth-expand{margin-left:auto}.auth-collapse{padding:7px 9px;color:var(--muted);background:transparent;border-radius:6px;font-size:10px;font-weight:700}
 @media(max-width:760px){.registry-intro{display:grid;gap:15px;align-items:start;padding-top:0}.registry-intro h1{font-size:28px}.registry-intro .location-controls{display:flex;gap:8px}.registry-intro .location-controls label{flex:1}.registry-stats{margin-top:16px;gap:12px;padding:10px 12px}.registry-stats div{padding-right:10px}.registry-stats .prototype-toggle{width:auto;margin-left:auto}}
+
+/* Readable feed treatment: keep content areas light and let rows carry the hierarchy. */
+.market-list{padding:22px 24px;background:var(--cream);border:1px solid var(--line)}
+.market-proposal-feed{gap:0;padding:22px 24px;background:var(--cream);border:1px solid var(--line)}
+.market-proposal-feed .proposal-card{padding:16px 0;background:transparent;border:0;border-top:1px solid var(--line);border-radius:0}
+.market-proposal-feed .proposal-card p{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2}
+.market-proposal-feed .proposal-card>a{display:inline-flex;width:max-content;max-width:100%;padding:3px 6px;color:#8a6a48;background:#fff0d8;border-radius:99px;font-size:9px}
+.nearby-sidebar{gap:0;padding:20px 22px;background:var(--cream);border:1px solid var(--line)}
+.nearby-sidebar .nearby-item{padding:13px 0;background:transparent;border-top:1px solid var(--line);border-radius:0}
+.nearby-sidebar .nearby-item:hover{background:transparent;color:var(--orange)}
+.sidebar-report{margin-top:14px}
+@media(max-width:760px){.market-list,.market-proposal-feed{padding:18px 16px}.nearby-sidebar{padding:18px 16px}.market-proposal-feed .proposal-card{padding:14px 0}}
