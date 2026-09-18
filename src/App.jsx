@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { MapContainer, TileLayer, CircleMarker, useMap } from 'react-leaflet';
-import { MapPin, LocateFixed, Search, Plus, Database, ArrowRight, X, Check, Info, LogIn, LogOut, Send, Star, LoaderCircle, ExternalLink } from 'lucide-react';
+import { MapPin, LocateFixed, Search, Plus, Database, ArrowRight, X, Check, Info, LogIn, LogOut, Send, Star, LoaderCircle, ExternalLink, ShieldCheck } from 'lucide-react';
 import { supabase, supabaseConfigured, turnstileSiteKey } from './lib/supabaseClient';
 import TurnstileWidget from './components/TurnstileWidget';
 import 'leaflet/dist/leaflet.css';
+import './moderation.css';
 
 const CITY_CENTERS = { 臺北市: [25.04, 121.52], 新北市: [25.01, 121.46], 桃園市: [24.99, 121.30], 臺中市: [24.15, 120.67], 臺南市: [22.99, 120.20], 花蓮縣: [23.99, 121.60], 臺東縣: [22.76, 121.14] };
 const PROTOTYPE_STALLS = [
@@ -57,10 +58,48 @@ function ContributionForm({ selected, user, marketDbId, busy, onSubmit, onClose 
   return <form className="contribution-form" onSubmit={submit}><div className="form-heading"><div><span className="section-label">新增提案</span><h3>{selected ? `補充「${selected.name}」` : '新增夜市'}</h3></div><button type="button" className="modal-close" onClick={onClose} aria-label="關閉"><X size={18} /></button></div><label>類型<select value={kind} onChange={(event) => setKind(event.target.value)}><option value="market">新增夜市</option>{selected && <option value="stall">新增攤位</option>}</select></label>{kind === 'stall' && !marketDbId && <div className="inline-warning"><Info size={15} /> 此夜市尚未同步到共同資料庫，暫時無法提交攤位提案。</div>}<label>名稱<input value={name} onChange={(event) => setName(event.target.value)} required maxLength={200} placeholder="例如：阿明蚵仔煎" /></label>{kind === 'market' && <><label>縣市<input value={cityName} onChange={(event) => setCityName(event.target.value)} required maxLength={100} placeholder="例如：桃園市" /></label><label>區域<input value={district} onChange={(event) => setDistrict(event.target.value)} required maxLength={100} placeholder="例如：中壢區" /></label><label>地址或明確位置描述<input value={address} onChange={(event) => setAddress(event.target.value)} required maxLength={500} placeholder="例如：中央西路與中美路附近" /></label></>}{kind === 'stall' && <label>位置描述<input value={locationNote} onChange={(event) => setLocationNote(event.target.value)} required maxLength={500} placeholder="例如：入口右側第三排" /></label>}<label>資料來源 URL <input type="url" value={sourceUrl} onChange={(event) => setSourceUrl(event.target.value)} required placeholder="https://…" /></label><label>來源名稱（選填）<input value={sourceTitle} onChange={(event) => setSourceTitle(event.target.value)} maxLength={200} /></label><label>補充說明（選填）<textarea value={note} onChange={(event) => setNote(event.target.value)} maxLength={1000} rows={3} /></label>{captchaMissing ? <div className="inline-warning"><Info size={15} /> 匿名投稿需要啟用人機驗證；目前尚未設定 Turnstile site key。</div> : !user && <><p className="form-hint">首次匿名投稿前，請先完成 Cloudflare 人機驗證。</p><TurnstileWidget siteKey={turnstileSiteKey} resetSignal={captchaReset} onToken={(token) => { setCaptchaToken(token); setCaptchaError(''); }} onError={setCaptchaError} />{captchaError && <div className="inline-error"><Info size={15} /> {captchaError}</div>}</>}<p className="form-hint">送出後會以「待確認」公開顯示，來源會和提案一起保存；不會直接加入正式地圖。</p><button className="modal-action" disabled={busy || captchaMissing || (!user && !captchaToken) || (kind === 'stall' && !marketDbId)}>{busy ? <LoaderCircle className="spin" size={16} /> : <Send size={16} />} 送出待確認提案</button></form>;
 }
 
+const MODERATION_STATUSES = ['pending', 'discussion', 'needs_evidence', 'adopted', 'rejected'];
+
+function AdminPanel({ role, busy, onModerate }) {
+  const [open, setOpen] = useState(false);
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [drafts, setDrafts] = useState({});
+  const allowed = role === 'moderator' || role === 'admin';
+  const load = async () => {
+    if (!supabase || !allowed) return;
+    setLoading(true); setError('');
+    const { data, error: loadError } = await supabase.from('proposals')
+      .select('id,kind,payload,source_url,source_title,status,decision_reason,submitted_at,support_count,oppose_count,needs_evidence_count')
+      .in('status', ['pending', 'discussion', 'needs_evidence'])
+      .order('submitted_at', { ascending: true }).limit(100);
+    if (loadError) setError(`提案載入失敗：${loadError.message}`);
+    else { setRows(data || []); setDrafts(Object.fromEntries((data || []).map((row) => [row.id, row.decision_reason || '']))); }
+    setLoading(false);
+  };
+  useEffect(() => { if (open) load(); }, [open, role]);
+  if (!allowed) return null;
+  const update = async (row) => {
+    const status = row.nextStatus || row.status;
+    if ((status === 'needs_evidence' || status === 'rejected') && !drafts[row.id]?.trim()) {
+      setError('「待補資料」與「未採用」需要填寫處理理由。'); return;
+    }
+    setError('');
+    const result = await onModerate(row.id, status, drafts[row.id] || '');
+    if (result?.error) setError(result.error);
+    else await load();
+  };
+  return <section className="moderation-panel">
+    <button className="moderation-toggle" onClick={() => setOpen((value) => !value)}><ShieldCheck size={16} /> 管理審核 {open ? '收起' : '開啟'}<span>{role}</span></button>
+    {open && <div className="moderation-content"><div className="moderation-heading"><div><span className="section-label">MODERATION</span><h2>待審提案</h2></div><button className="text-button" onClick={load} disabled={loading}>{loading ? <LoaderCircle className="spin" size={14} /> : '重新整理'}</button></div>{error && <div className="inline-error"><Info size={15} /> {error}</div>}{!loading && !rows.length && <p className="form-hint">目前沒有開放中的待審提案。</p>}{rows.map((row) => <article className="moderation-card" key={row.id}><div className="moderation-card-title"><b>{row.payload?.name || '未命名提案'}</b><span>{row.kind === 'stall' ? '攤位' : '夜市'} · {proposalStatusLabel[row.status]}</span></div><p>{[row.payload?.city, row.payload?.district, row.payload?.address || row.payload?.location_note].filter(Boolean).join(' · ')}</p><a href={row.source_url} target="_blank" rel="noreferrer">{row.source_title || row.source_url} <ExternalLink size={13} /></a><div className="vote-summary"><span>支持 {row.support_count || 0}</span><span>反對 {row.oppose_count || 0}</span><span>需補資料 {row.needs_evidence_count || 0}</span></div><div className="moderation-controls"><label>狀態<select value={row.nextStatus || row.status} onChange={(event) => setRows((current) => current.map((item) => item.id === row.id ? { ...item, nextStatus: event.target.value } : item))}>{MODERATION_STATUSES.map((status) => <option key={status} value={status}>{proposalStatusLabel[status]}</option>)}</select></label><label>處理理由<textarea rows={2} value={drafts[row.id] || ''} onChange={(event) => setDrafts((current) => ({ ...current, [row.id]: event.target.value }))} placeholder="需要補資料或退回時請說明" /></label><button className="modal-action" disabled={busy} onClick={() => update(row)}>{busy ? <LoaderCircle className="spin" size={15} /> : <Check size={15} />} 儲存審核</button></div></article>)}</div>}
+  </section>;
+}
+
 function App() {
   const [data, setData] = useState(null); const [city, setCity] = useState('全部'); const [query, setQuery] = useState('');
   const [userLocation, setUserLocation] = useState(null); const [locating, setLocating] = useState(false); const [prototype, setPrototype] = useState(false); const [selected, setSelected] = useState(null); const [toast, setToast] = useState('');
-  const [user, setUser] = useState(null); const [email, setEmail] = useState(''); const [authBusy, setAuthBusy] = useState(false); const [authMessage, setAuthMessage] = useState('');
+  const [user, setUser] = useState(null); const [role, setRole] = useState(null); const [email, setEmail] = useState(''); const [authBusy, setAuthBusy] = useState(false); const [authMessage, setAuthMessage] = useState('');
   const [communityBusy, setCommunityBusy] = useState(false); const [showContribution, setShowContribution] = useState(false); const [marketDbId, setMarketDbId] = useState(null); const [proposals, setProposals] = useState([]); const [marketProposals, setMarketProposals] = useState([]); const [ratingSummaries, setRatingSummaries] = useState({}); const [proposalBusy, setProposalBusy] = useState(false); const [proposalError, setProposalError] = useState('');
   useEffect(() => { fetch('/data/night-markets.json').then((response) => response.json()).then(setData).catch(() => setToast('夜市資料載入失敗，請重新整理')); }, []);
   useEffect(() => {
@@ -70,6 +109,12 @@ function App() {
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => { if (active) setUser(session?.user || null); });
     return () => { active = false; listener.subscription.unsubscribe(); };
   }, []);
+  useEffect(() => {
+    let active = true;
+    if (!supabase || !user || isAnonymousUser(user)) { setRole(null); return undefined; }
+    supabase.from('profiles').select('role').eq('user_id', user.id).maybeSingle().then(({ data }) => { if (active) setRole(data?.role || 'member'); });
+    return () => { active = false; };
+  }, [user]);
   useEffect(() => {
     if (!supabase) return;
     supabase.from('proposals').select('id,payload,source_url,source_title,status,submitted_at,support_count,oppose_count,needs_evidence_count').eq('kind', 'market').is('market_id', null).order('submitted_at', { ascending: false }).limit(100).then(({ data, error }) => { if (!error) setMarketProposals((data || []).filter((proposal) => city === '全部' || proposal.payload?.city === city)); });
@@ -99,6 +144,12 @@ function App() {
   };
   const sendMagicLink = async ({ captchaToken, onCaptchaReset }) => { if (!supabase) return; setAuthBusy(true); setAuthMessage(''); const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: window.location.origin, captchaToken } }); setAuthMessage(error ? `登入連結寄送失敗：${error.message}` : '登入連結已寄出，請查看信箱後回到本頁。'); onCaptchaReset?.(); setAuthBusy(false); };
   const signOut = async () => { if (supabase) await supabase.auth.signOut(); setAuthMessage('已登出'); };
+  const moderateProposal = async (proposalId, status, decisionReason) => {
+    if (!supabase || !role || !['moderator', 'admin'].includes(role)) return { error: '目前帳號沒有管理審核權限。' };
+    const { error } = await supabase.rpc('moderate_proposal', { p_proposal_id: proposalId, p_status: status, p_decision_reason: decisionReason || null });
+    if (error) return { error: `審核沒有儲存：${error.message}` };
+    showToast('提案審核已更新'); return {};
+  };
   const ensureAnonymous = async (captchaToken) => { if (!supabase) throw new Error('Supabase 尚未設定'); if (user && !isAnonymousUser(user)) return user; if (!turnstileSiteKey) throw new Error('匿名投稿尚未啟用：管理者需要先設定 Turnstile site key。'); if (user) return user; if (!captchaToken) throw new Error('請先完成 Cloudflare 人機驗證。'); const { data: authData, error } = await supabase.auth.signInAnonymously({ options: { captchaToken } }); if (error) throw error; setUser(authData.user); return authData.user; };
   const submitProposal = async ({ kind, name, cityName, district, address, locationNote, sourceUrl, sourceTitle, note, marketId, captchaToken, onCaptchaReset }) => {
     if (!supabase) { setProposalError('社群功能尚未連線，提案沒有送出。'); return; }
@@ -123,7 +174,7 @@ function App() {
   const locate = () => { if (!navigator.geolocation) { showToast('此瀏覽器不支援定位，請改用縣市選擇'); return; } setLocating(true); navigator.geolocation.getCurrentPosition((position) => { setUserLocation([position.coords.latitude, position.coords.longitude]); showToast('已取得你的位置；目前資料仍需補齊座標才能計算距離'); setLocating(false); }, () => { showToast('定位未授權，請用上方縣市選擇'); setLocating(false); }, { timeout: 7000 }); };
   return <div className="registry-app">
     <header className="registry-header"><a className="registry-brand" href="/"><span><MapPin size={20} /></span><b>夜市地圖</b><small>全台名錄</small></a><div className="header-source"><Database size={15} /> 經濟部夜市資料集 <a href="https://data.gov.tw/dataset/95760" target="_blank" rel="noreferrer">95760</a></div><button className="header-contribute" disabled={!supabaseConfigured} onClick={() => setShowContribution(true)}><Plus size={16} /> 新增夜市</button></header>
-    <main className="registry-main"><section className="registry-intro"><div className="eyebrow">TAIWAN NIGHT MARKET REGISTRY</div><h1>先找到你附近的夜市。</h1><p>固定地點、定期營業的夜市名錄，從官方資料開始，交給各地貢獻者一起補完整。</p><div className="location-controls"><button className="locate-button" onClick={locate}><LocateFixed size={16} className={locating ? 'spin' : ''} /> {locating ? '定位中…' : '使用我的位置'}</button><label><span>或選擇縣市</span><select value={city} onChange={(event) => setCity(event.target.value)}><option value="全部">全台</option>{cities.map((item) => <option key={item}>{item}</option>)}</select></label><label className="search-input"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜尋夜市名稱" /></label></div></section><AuthPanel user={user} authBusy={authBusy} authMessage={authMessage} email={email} setEmail={setEmail} onSendMagicLink={sendMagicLink} onSignOut={signOut} />{showContribution && !selected && <section className="standalone-contribution"><ContributionForm selected={null} user={user} marketDbId={null} busy={proposalBusy} onSubmit={submitProposal} onClose={() => setShowContribution(false)} /></section>}
+    <main className="registry-main"><section className="registry-intro"><div className="eyebrow">TAIWAN NIGHT MARKET REGISTRY</div><h1>先找到你附近的夜市。</h1><p>固定地點、定期營業的夜市名錄，從官方資料開始，交給各地貢獻者一起補完整。</p><div className="location-controls"><button className="locate-button" onClick={locate}><LocateFixed size={16} className={locating ? 'spin' : ''} /> {locating ? '定位中…' : '使用我的位置'}</button><label><span>或選擇縣市</span><select value={city} onChange={(event) => setCity(event.target.value)}><option value="全部">全台</option>{cities.map((item) => <option key={item}>{item}</option>)}</select></label><label className="search-input"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜尋夜市名稱" /></label></div></section><AuthPanel user={user} authBusy={authBusy} authMessage={authMessage} email={email} setEmail={setEmail} onSendMagicLink={sendMagicLink} onSignOut={signOut} /><AdminPanel role={role} busy={proposalBusy} onModerate={moderateProposal} />{showContribution && !selected && <section className="standalone-contribution"><ContributionForm selected={null} user={user} marketDbId={null} busy={proposalBusy} onSubmit={submitProposal} onClose={() => setShowContribution(false)} /></section>}
       <section className="registry-stats"><div><strong>{markets.length}</strong><span>快照名錄</span></div><div><strong>{cities.length}</strong><span>縣市</span></div><div><strong>{markets.filter((item) => item.latitude).length}</strong><span>可定位點位</span></div><button className={prototype ? 'prototype-toggle active' : 'prototype-toggle'} onClick={() => setPrototype((value) => !value)}>{prototype ? '返回快照名錄' : '查看饒河街原型資料'} <ArrowRight size={15} /></button></section>
       <div className="registry-grid"><section className="market-list"><div className="list-heading"><div><span className="section-label">{userLocation ? '依距離排序' : '可探索夜市'}</span><h2>{city === '全部' ? '政府快照名錄' : `${city}的夜市`}</h2></div><span className="result-count">{visible.length} 筆</span></div>{prototype && <div className="prototype-note"><Info size={16} /><span>這是原型用的饒河街攤位資料，尚未接入全台名錄與共同資料庫。</span></div>}<div className="snapshot-note"><Info size={15} /> 2026-09-18 非即時快照；候選資料仍待人工複核，不能視為完整即時全台名錄。</div><div className="market-cards">{visible.map((market) => <button key={market.id} className="market-card" onClick={() => selectMarket(market)}><span className="market-icon"><MapPin size={19} /></span><span className="market-card-copy"><b>{market.name}</b><small>{market.city} · {market.district}{market.distanceKm != null ? ` · 約 ${market.distanceKm.toFixed(1)} 公里` : ''}</small><em>{market.address || '地址待官方 CSV 匯入'}</em></span><span className="market-status">{market.reviewStatus === '待複核候選' ? '待複核' : market.coordinateStatus === 'unverified' ? '座標待核對' : '入口/商圈近似'}</span></button>)}{!visible.length && <div className="empty-result">找不到符合的夜市，試試選擇其他縣市。</div>}</div></section><section className="registry-map"><MapContainer center={[23.7, 120.9]} zoom={7} zoomControl={false} scrollWheelZoom><TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" /><MapCenter city={city} userLocation={userLocation} markets={markets} onSelect={selectMarket} /></MapContainer><div className="map-overlay"><span className="map-tag"><span /> 可定位點位</span><b>{city === '全部' ? '快照夜市分布' : `${city}夜市`}</b><p>{userLocation ? '已依可定位點位計算約略距離。' : '點選橘色點位查看夜市詳情。'}</p></div><div className="map-footnote">地圖底圖 © OpenStreetMap · 點位為入口或商圈近似位置</div></section></div>
       <section className="market-proposal-feed"><div className="list-heading"><div><span className="section-label">尚待確認的新增夜市</span><h2>{city === '全部' ? '全台提案' : `${city}提案`}</h2></div><span className="result-count">{marketProposals.length} 筆</span></div>{!supabaseConfigured && <p className="form-hint">Supabase 尚未設定；新增夜市提案列表會在連線後顯示。</p>}{supabaseConfigured && !marketProposals.length && <p className="form-hint">目前沒有符合縣市的新增夜市提案。</p>}{marketProposals.map((proposal) => <article className="proposal-card" key={proposal.id}><div><b>{proposal.payload?.name || '未命名夜市'}</b><span className="proposal-status">{proposalStatusLabel[proposal.status] || proposal.status}</span></div><p>{proposal.payload?.city}・{proposal.payload?.district}・{proposal.payload?.address}</p><a href={proposal.source_url} target="_blank" rel="noreferrer">{proposal.source_title || proposal.source_url} <ExternalLink size={13} /></a><div className="vote-summary"><span>支持 {proposal.support_count || 0}</span><span>反對 {proposal.oppose_count || 0}</span><span>需補證據 {proposal.needs_evidence_count || 0}</span></div>{proposal.status !== 'rejected' && proposal.status !== 'adopted' && <div className="proposal-votes"><button disabled={proposalBusy || !user || isAnonymousUser(user)} onClick={() => voteOnProposal(proposal.id, 'support')}>支持</button><button disabled={proposalBusy || !user || isAnonymousUser(user)} onClick={() => voteOnProposal(proposal.id, 'oppose')}>反對</button><button disabled={proposalBusy || !user || isAnonymousUser(user)} onClick={() => voteOnProposal(proposal.id, 'needs_evidence')}>需補證據</button></div>}</article>)}</section><section className="contributor-callout"><div><span className="section-label">在地貢獻者</span><h2>你家附近的夜市，資料完整嗎？</h2><p>選一個夜市後，可以接著補充地址、營業日、攤位或回報變動。送出前會清楚標示為待審投稿，不會直接冒充公開資料。</p></div><button disabled={!supabaseConfigured} onClick={() => setShowContribution(true)}>新增夜市 <ArrowRight size={16} /></button></section></main>
