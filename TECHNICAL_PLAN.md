@@ -6,7 +6,7 @@
 
 目前 Web 是 React + Vite 的靜態站：`npm run build` 產生 `dist`，`.openai/hosting.json` 只部署 `dist`，沒有 API、伺服器端程式、資料庫或帳號服務。現有 `public/data/night-markets.json` 是編譯時載入的唯讀快照，因此無法直接支援跨使用者投稿、表決或星評。
 
-第一版採用 **Supabase（Postgres + Auth + Row Level Security）**。它和靜態 Vite 的邊界清楚，前端可直接使用公開的 project URL / publishable key，資料安全由資料庫 RLS 控制；投稿與投票也能用唯一約束保證「一帳號一票」與「一帳號一攤位一筆星評」。目前三個 migrations 已部署，86 筆名錄已匯入並標為 `needs_review`；Cloudflare Turnstile 已在 Supabase Auth 啟用，Anonymous Sign-Ins 暫時關閉。
+第一版採用 **Supabase（Postgres + Auth + Row Level Security）**。它和靜態 Vite 的邊界清楚，前端可直接使用公開的 project URL / publishable key，資料安全由資料庫 RLS 控制；投稿與投票也能用唯一約束保證「一帳號一票」與「一帳號一攤位一筆星評」。目前三個 migrations 已部署，86 筆名錄已匯入並標為 `needs_review`；Cloudflare Turnstile 與 Anonymous Sign-Ins 已在 Supabase Auth 啟用。
 
 Firebase 是可行的第二選擇（Firestore Rules、Firebase Auth、App Check），但查詢提案與歷史版本時資料模型較分散；自建 API / PostgreSQL 在目前只有靜態 hosting 的條件下會增加主機、密鑰、部署與維運工作。試行規模不需要為了效能引入更複雜的架構。
 
@@ -70,7 +70,7 @@ Supabase Auth 負責會員登入（第一版可用 email magic link，之後再�
 
 需要使用者提供或在外部服務完成的工作：
 
-- 決定是否在現有 CAPTCHA 與每身分限流下開啟 Anonymous Sign-Ins。
+- 驗證現有 CAPTCHA 與每身分限流下的實際匿名投稿流程。
 - 決定永久會員登入方式並完成 email 寄信；目前本機 redirect URL 為 `http://localhost:5173`，正式網域尚未決定。若用 Google 等 OAuth，還需設定 OAuth provider 的 client ID/secret。
 - 決定正式網域及 Supabase Auth allowed URLs；目前 hosting 設定只有靜態 `dist` 目錄，需在部署平台設定 `VITE_*` build-time environment variables。
 - Turnstile site key 已放在本機未追蹤的 `.env.local`，secret key 已設於 Supabase Auth CAPTCHA；正式部署須在平台設定公開 site key，並在 Cloudflare widget 增加正式網域。
@@ -82,7 +82,7 @@ Supabase Auth 負責會員登入（第一版可用 email magic link，之後再�
 
 正式導入已完成一次 snapshot-to-Postgres 匯入，保留原始來源 URL、座標與穩定 `external_id`，並讓現有 JSON 仍可作為故障時的唯讀 fallback。資料庫 schema、RLS policy、seed / import script 已以 migration 形式納入 repo。
 
-最低可行部署依賴是：email 寄信設定、hosting 平台的公開 build env（Supabase URL、publishable key、Turnstile site key）、正式網域和一名管理員。Anonymous Sign-Ins 目前仍關閉；Turnstile 與每匿名身分每小時 3 筆的限制已配置，但正式開啟後仍須驗證實際投稿流程與濫用風險。
+最低可行部署依賴是：email 寄信設定、hosting 平台的公開 build env（Supabase URL、publishable key、Turnstile site key）、正式網域和一名管理員。Anonymous Sign-Ins 已開啟；Turnstile 與每匿名身分每小時 3 筆的限制已配置，仍須驗證實際投稿流程與濫用風險。
 
 ## 建議試行順序
 
