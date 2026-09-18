@@ -57,4 +57,4 @@
 - 正式網域尚未決定，因此 production redirect URL、Turnstile hostname 與部署尚未完成。
 - Supabase Dashboard 的 moderator/admin 角色、Auth 設定與正式網域驗收由專案負責人操作；本專案規範不由代理操作瀏覽器或要求提供 secret。
 - 全台資料仍是待複核工作版，不可把 86 筆匯入數當成全台完整覆蓋率。
-- 新增攤位的採用 RPC 與前端 build 已完成；遠端 migration 套用、真人 CAPTCHA、正式 email 與 production hosting 仍需按上線檢查表逐項驗收。
+- 新增攤位的採用 RPC 與前端 build 已完成，migration 006 已套用到遠端；真人 CAPTCHA、正式 email 與 production hosting 仍需按上線檢查表逐項驗收。
