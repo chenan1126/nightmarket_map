@@ -297,7 +297,19 @@ revoke all on public.markets, public.stalls, public.profiles, public.proposals,
   public.proposal_sources, public.proposal_votes, public.stall_ratings,
   public.audit_events from anon, authenticated;
 
-grant select on public.markets, public.stalls, public.proposals, public.proposal_sources to anon, authenticated;
+-- Public proposal/source reads expose only fields used by the public UI. In
+-- particular, submitted_by, decided_by, and proposal_sources.created_by are
+-- account-identifying/internal fields and stay inaccessible to client roles.
+-- The proposal columns below also cover the explicit .select() on the
+-- frontend insert, so PostgREST can return the created proposal safely.
+grant select (
+  id, kind, market_id, adopted_stall_id, payload, source_url, source_title,
+  status, submitted_at, support_count, oppose_count, needs_evidence_count
+)
+  on public.proposals to anon, authenticated;
+grant select (id, proposal_id, url, title, note, captured_at, created_at)
+  on public.proposal_sources to anon, authenticated;
+grant select on public.markets, public.stalls to anon, authenticated;
 grant select on public.profiles, public.proposal_votes, public.stall_ratings to authenticated;
 grant select on public.stall_rating_summaries to anon, authenticated;
 grant insert (kind, market_id, submitted_by, payload, source_url, source_title, status)

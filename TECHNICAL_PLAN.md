@@ -6,7 +6,7 @@
 
 目前 Web 是 React + Vite 的靜態站：`npm run build` 產生 `dist`，`.openai/hosting.json` 只部署 `dist`，沒有 API、伺服器端程式、資料庫或帳號服務。現有 `public/data/night-markets.json` 是編譯時載入的唯讀快照，因此無法直接支援跨使用者投稿、表決或星評。
 
-第一版建議採用 **Supabase（Postgres + Auth + Row Level Security）**。它和靜態 Vite 的邊界清楚，前端可直接使用公開的 project URL / anon key，資料安全由資料庫 RLS 控制；投稿與投票也能用唯一約束保證「一帳號一票」與「一帳號一攤位一筆星評」。這份勘查不建立外部帳號，也不購買服務。
+第一版採用 **Supabase（Postgres + Auth + Row Level Security）**。它和靜態 Vite 的邊界清楚，前端可直接使用公開的 project URL / publishable key，資料安全由資料庫 RLS 控制；投稿與投票也能用唯一約束保證「一帳號一票」與「一帳號一攤位一筆星評」。目前兩個 migrations 已部署，86 筆名錄已匯入並標為 `needs_review`；Anonymous Sign-Ins 暫時關閉，等待 CAPTCHA / 反濫用方案決定。
 
 Firebase 是可行的第二選擇（Firestore Rules、Firebase Auth、App Check），但查詢提案與歷史版本時資料模型較分散；自建 API / PostgreSQL 在目前只有靜態 hosting 的條件下會增加主機、密鑰、部署與維運工作。試行規模不需要為了效能引入更複雜的架構。
 
@@ -70,8 +70,8 @@ Supabase Auth 負責會員登入（第一版可用 email magic link，之後再�
 
 需要使用者提供或在外部服務完成的工作：
 
-- 建立 Supabase project，取得 URL / anon key，執行 migration、RLS policy、trigger/RPC 與初始資料匯入；決定是否開啟 Anonymous Sign-Ins。
-- 決定永久會員登入方式並設定 email 寄信、redirect URL；若用 Google 等 OAuth，還需設定 OAuth provider 的 client ID/secret。
+- 決定是否在 CAPTCHA / 反濫用方案完成後開啟 Anonymous Sign-Ins。
+- 決定永久會員登入方式並完成 email 寄信；目前本機 redirect URL 為 `http://localhost:5173`，正式網域尚未決定。若用 Google 等 OAuth，還需設定 OAuth provider 的 client ID/secret。
 - 決定正式網域及 Supabase Auth allowed URLs；目前 hosting 設定只有靜態 `dist` 目錄，需在部署平台設定 `VITE_*` build-time environment variables。
 - 若啟用 Anonymous Sign-Ins / Turnstile，建立 CAPTCHA site key / secret key，並提供一個不暴露 secret 的驗證 endpoint（Supabase Edge Function 或其他 serverless runtime）。
 - 指派 `moderator` / `admin`，確認誰處理中壢與中原的久候、重複和爭議提案；這是營運決策，不應由前端預設。
@@ -80,18 +80,18 @@ Supabase Auth 負責會員登入（第一版可用 email magic link，之後再�
 
 目前 `.openai/hosting.json` 可繼續部署靜態前端；它不會提供資料庫或安全後端。建置時可公開 `VITE_SUPABASE_URL` 和 `VITE_SUPABASE_ANON_KEY`，但所有資料庫權限必須由 RLS 限制。若使用 Turnstile secret、服務角色金鑰或管理匯入，必須放在 Supabase Edge Function / CI secret，不可放在 repo 或靜態檔案。
 
-正式導入前應先做一次 snapshot-to-Postgres 匯入，保留原始來源 URL、來源日期、座標狀態和 `id`，並讓現有 JSON 仍可作為故障時的唯讀 fallback。資料庫 schema、RLS policy、seed / import script 應以 migration 形式納入 repo，這部分可以先寫好但不能在沒有 project credentials 時執行部署。
+正式導入已完成一次 snapshot-to-Postgres 匯入，保留原始來源 URL、座標與穩定 `external_id`，並讓現有 JSON 仍可作為故障時的唯讀 fallback。資料庫 schema、RLS policy、seed / import script 已以 migration 形式納入 repo。
 
-最低可行部署依賴是：Supabase project、Anonymous Sign-Ins 設定、email 寄信設定、hosting 平台的兩個公開 build env，以及一名管理員。需要匿名反濫用時再增加 Turnstile 和 Edge Function；若沒有 serverless endpoint，第一輪可以先停用 Anonymous Sign-Ins、改用完全公開 insert（搭配 `source_url NOT NULL`、限流和人工審核），但不能宣稱匿名投稿已有強驗證。
+最低可行部署依賴是：email 寄信設定、hosting 平台的兩個公開 build env，以及一名管理員。Anonymous Sign-Ins 在 CAPTCHA / Edge Function 反濫用方案完成前維持關閉；不能宣稱匿名投稿已有強驗證。
 
 ## 建議試行順序
 
-1. 先在 repo 建 schema migration、型別/驗證、前端 feature flag 與唯讀 fallback；不改正式名錄資料。
-2. 建立 Supabase project 後匯入中壢觀光夜市與中原夜市及其穩定 ID，開啟 Auth、RLS 和提案/星評測試資料。
-3. 以匿名 Auth user 與永久測試帳號驗證：匿名投稿必須在同一 transaction 寫入來源；`is_anonymous = true` 不能投票/評星；永久會員同帳號重投只更新原票；一般會員不能改狀態或 audit。
+1. 在 repo 維護 schema migration、型別/驗證、前端 feature flag 與唯讀 fallback；不直接把待複核資料當成正式名錄。
+2. 以永久測試帳號驗證 Auth、RLS 和提案/星評流程；目前遠端已確認 86 筆 markets、proposals 為 0，內部帳號欄位不可由公開 REST 讀取。
+3. 決定 CAPTCHA / 反濫用方案後，再開啟 Anonymous Sign-Ins 並驗證：匿名投稿必須在同一 transaction 寫入來源；`is_anonymous = true` 不能投票/評星；永久會員同帳號重投只更新原票；一般會員不能改狀態或 audit。
 4. 部署 staging，觀察投稿重複率、來源可查性、平均等待時間和垃圾內容，再決定 Turnstile、表決期限與採用門檻。
 5. 試行穩定後才把相同流程開放到其他縣市，並定期匯入或人工核對政府快照。
 
-這個方案能先把靜態名錄和社群提案解耦，保留目前頁面可運作；真正的跨使用者資料、登入、票數唯一性和決策追溯則由 Supabase schema / RLS 提供。尚未建立外部服務前，repo 只能完成介面、驗證、migration 草稿和 fallback，不能驗證真實登入、RLS 或跨瀏覽器同步。
+這個方案能先把靜態名錄和社群提案解耦，保留目前頁面可運作；真正的跨使用者資料、登入、票數唯一性和決策追溯則由 Supabase schema / RLS 提供。遠端 schema、seed 與公開 REST 權限已驗證；永久會員登入、投稿流程和跨瀏覽器同步仍需測試。
 
-目前 repo 已完成前端可選整合：首頁可直接提交新增夜市，夜市頁可提交攤位提案；提案來源、狀態與資料庫維護的表決彙總會顯示在列表。星評只在管理流程將提案標為 `adopted` 並填入 `adopted_stall_id` 後出現。`scripts/generate-markets-seed.mjs` 可將現有 86 筆 JSON 以 `external_id` 產生可重複執行的 `needs_review` seed SQL。未設定 Supabase、未執行 migration 或未匯入 markets 時，這些流程不會宣稱成功；真實 RLS、Auth、trigger 與跨瀏覽器行為仍須在 staging project 驗證。
+目前 repo 已完成前端可選整合：首頁可直接提交新增夜市，夜市頁可提交攤位提案；提案來源、狀態與資料庫維護的表決彙總會顯示在列表。星評只在管理流程將提案標為 `adopted` 並填入 `adopted_stall_id` 後出現。`scripts/generate-markets-seed.mjs` 可將現有 86 筆 JSON 以 `external_id` 產生可重複執行的 `needs_review` seed SQL。遠端已部署 migrations 與 seed；Anonymous Sign-Ins、正式 redirect 網域和永久會員跨瀏覽器驗證仍待決定或測試。

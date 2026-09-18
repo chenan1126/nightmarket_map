@@ -57,9 +57,9 @@
 4. 提案進入正式名錄或退回時，保存決策者、理由、時間與當時的資料版本。正式名錄的修正也保留歷史版本，便於回復錯誤修改。
 5. 沒有足夠人表決的提案可維持待確認；在地協作者可處理久候提案。對疑似灌票、垃圾來源或錯誤位置提供回報與暫停機制。
 
-上述是目標規格。現有 Web 已加入 Supabase client 的可選整合、匿名投稿與永久會員表決/星評介面；未設定 Supabase 時仍是唯讀靜態站。真正上線前仍需在 Supabase project 執行 migration、匯入正式名錄、設定 Auth redirect/CAPTCHA，並完成 staging 的 RLS 與跨瀏覽器驗證。
+上述是目標規格。現有 Web 已加入 Supabase client 的可選整合、匿名投稿與永久會員表決/星評介面；未設定 Supabase 時仍是唯讀靜態站。Supabase migrations 與 86 筆待複核名錄已部署，正式上線前仍需決定 CAPTCHA 後是否開啟 Anonymous Sign-Ins、完成跨瀏覽器驗證與正式網域設定。
 
-使用者已同意以 Supabase 作為共用資料庫與登入服務。先在 repo 完成 schema、權限與前端流程；正式連線、寄信與權限驗證需要 Supabase project 設定。第一版免登入投稿可由背景匿名身分完成，但匿名身分不可投票或評星。
+使用者已同意以 Supabase 作為共用資料庫與登入服務，project 與 schema 已建立。第一版免登入投稿仍待 CAPTCHA / 反濫用方案決定；匿名身分不可投票或評星。
 
 ## 衡量方式
 

@@ -13,7 +13,7 @@ Web 端使用 React + Vite，開發預覽預設在 `http://localhost:5173/`。
 
 ## 啟用社群功能
 
-Web 沒有設定 Supabase 時會維持唯讀名錄，不會假稱投稿或評分成功。建立 Supabase project、執行 `supabase/migrations/202609180001_social_contributions.sql` 後，在 hosting 平台設定以下 build-time variables：
+Web 沒有設定 Supabase 時會維持唯讀名錄，不會假稱投稿或評分成功。目前 Supabase project 已完成兩個 versioned migrations 與 86 筆 `needs_review` 名錄匯入；在 hosting 平台設定以下 build-time variables：
 
 ```text
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
@@ -22,7 +22,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=<publishable-key>
 
 舊部署也可繼續使用 `VITE_SUPABASE_ANON_KEY`；前端會將它視為相同的瀏覽器公開金鑰。
 
-同時在 Supabase Authentication 開啟 Anonymous Sign-Ins、設定 email magic-link redirect URL，並先把名錄匯入 `markets`（將 JSON 的字串 `id` 放入 `external_id`）。`service_role` key 不得放入前端或 repo。完整的 RLS 邊界與本機驗證方式見 [`supabase/README.md`](supabase/README.md)。
+目前 Anonymous Sign-Ins 維持關閉，等 CAPTCHA / 反濫用方案決定後再開啟；本機 email magic-link redirect 已允許 `http://localhost:5173`，正式網域尚未決定。`service_role` key 不得放入前端或 repo。完整的 RLS 邊界與本機驗證方式見 [`supabase/README.md`](supabase/README.md)。
 
 首頁可直接新增夜市；新增夜市提案必填縣市、區域、地址或明確位置描述與來源 URL，並會出現在全台/縣市的待確認列表。票數由資料庫 trigger 維護，前端只讀彙總；星評只對正式採用且已建立攤位的提案開放，沒有正式攤位時會明確顯示待採用。
 
