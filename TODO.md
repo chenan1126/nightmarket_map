@@ -26,6 +26,7 @@
 - [x] moderator/admin 可查看待審提案並寫入審核 audit。
 - [x] 需補資料與退回狀態必須填理由。
 - [x] 採用攤位提案時，以 moderator-only secure RPC transaction 建立正式 `public.stalls`，避免同一夜市同名攤位重複，並回填 `adopted_stall_id`。
+- [ ] 套用 006/007 後，回填舊有已採用攤位提案並完成遠端資料核對。
 - [x] 採用攤位時保留 proposal/stall audit，星評只對正式採用且 active 的攤位開放。
 - [x] 採用夜市提案會安全拒絕，待另立夜市 onboarding 流程；不可由審核 RPC 自動建立市場。
 - [ ] 建立可回復的正式資料修正／停業／重複合併流程。
