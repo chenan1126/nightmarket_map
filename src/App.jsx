@@ -194,7 +194,8 @@ function MarketCommunityFeed({
   user,
   voteOnProposal,
   rateStall,
-  setReportTarget,
+  onRequireAuth,
+  onReport,
 }) {
   return (
     <section className="market-community-section">
@@ -205,6 +206,7 @@ function MarketCommunityFeed({
       {communityBusy && <div className="community-loading"><LoaderCircle className="spin" size={15} /> 載入社群資料…</div>}
       {proposalError && <div className="inline-error"><Info size={15} /> {proposalError}</div>}
       {!communityBusy && !proposals.length && <p className="community-empty"><span>✦</span> 目前還沒有提案，成為第一位補充攤位資料的人吧。</p>}
+      {(!user || isAnonymousUser(user)) && <p className="auth-action-hint">想參與表決或留下星評？<button type="button" onClick={onRequireAuth}>登入參與表決</button></p>}
       <div className="feed-list">
         {proposals.map((proposal, index) => (
           <article className={`feed-row ${index === 0 ? 'feed-row-featured' : ''}`} key={proposal.id}>
@@ -214,9 +216,9 @@ function MarketCommunityFeed({
             <a className="feed-source" href={proposal.source_url} target="_blank" rel="noreferrer"><span>來源</span>{proposal.source_title || proposal.source_url} <ExternalLink size={12} /></a>
             <div className="feed-vote-row">
               <div className="vote-summary"><span>支持 {proposal.support_count || 0}</span><span>反對 {proposal.oppose_count || 0}</span><span>需補證據 {proposal.needs_evidence_count || 0}</span></div>
-              {proposal.status !== 'rejected' && proposal.status !== 'adopted' && <div className="proposal-votes"><button disabled={proposalBusy || !user || isAnonymousUser(user)} onClick={() => voteOnProposal(proposal.id, 'support')}>支持</button><button disabled={proposalBusy || !user || isAnonymousUser(user)} onClick={() => voteOnProposal(proposal.id, 'oppose')}>反對</button><button disabled={proposalBusy || !user || isAnonymousUser(user)} onClick={() => voteOnProposal(proposal.id, 'needs_evidence')}>需補證據</button></div>}
+              {proposal.status !== 'rejected' && proposal.status !== 'adopted' && <div className="proposal-votes"><button disabled={proposalBusy} onClick={() => (!user || isAnonymousUser(user)) ? onRequireAuth() : voteOnProposal(proposal.id, 'support')}>支持</button><button disabled={proposalBusy} onClick={() => (!user || isAnonymousUser(user)) ? onRequireAuth() : voteOnProposal(proposal.id, 'oppose')}>反對</button><button disabled={proposalBusy} onClick={() => (!user || isAnonymousUser(user)) ? onRequireAuth() : voteOnProposal(proposal.id, 'needs_evidence')}>需補證據</button></div>}
             </div>
-            {proposal.status === 'adopted' && proposal.adopted_stall_id && <div className="adopted-rating"><span className="star-rating"><Star size={14} /> {ratingSummaries[proposal.adopted_stall_id] ? `${ratingSummaries[proposal.adopted_stall_id].average_stars} / 5（${ratingSummaries[proposal.adopted_stall_id].rating_count} 則）` : '尚無星評'}</span><span className="star-rating">留下評分 {[1, 2, 3, 4, 5].map((stars) => <button key={stars} disabled={proposalBusy || !user || isAnonymousUser(user)} onClick={() => rateStall(proposal.adopted_stall_id, stars)}>{stars}</button>)}</span><button className="report-button" onClick={() => setReportTarget({ id: proposal.adopted_stall_id, name: proposal.payload?.name || '這個攤位' })}><Flag size={13} /> 回報資料</button></div>}
+            {proposal.status === 'adopted' && proposal.adopted_stall_id && <div className="adopted-rating"><span className="star-rating"><Star size={14} /> {ratingSummaries[proposal.adopted_stall_id] ? `${ratingSummaries[proposal.adopted_stall_id].average_stars} / 5（${ratingSummaries[proposal.adopted_stall_id].rating_count} 則）` : '尚無星評'}</span><span className="star-rating"><span className="rating-label">留下評分</span>{[1, 2, 3, 4, 5].map((stars) => <button className="star-choice" key={stars} disabled={proposalBusy} aria-label={`${stars} 星`} title={`${stars} 星`} onClick={() => (!user || isAnonymousUser(user)) ? onRequireAuth() : rateStall(proposal.adopted_stall_id, stars)}>★</button>)}</span><button className="report-button" onClick={() => onReport({ id: proposal.adopted_stall_id, name: proposal.payload?.name || '這個攤位' })}><Flag size={13} /> 回報資料</button></div>}
           </article>
         ))}
       </div>
@@ -225,6 +227,8 @@ function MarketCommunityFeed({
 }
 
 function MarketPage({ market, proposals, ratingSummaries, communityBusy, proposalError, showContribution, setShowContribution, reportTarget, setReportTarget, user, proposalBusy, marketDbId, submitProposal, voteOnProposal, rateStall, submitQualityReport, onRefresh, onBack, authBusy, authMessage, email, setEmail, sendMagicLink, signOut, authOpen, setAuthOpen }) {
+  const focusMarketAuth = () => { setAuthOpen(true); const details = document.querySelector('.market-auth-tools'); if (details) details.open = true; window.setTimeout(() => { details?.scrollIntoView({ behavior: 'smooth', block: 'center' }); details?.querySelector('input[type="email"]')?.focus(); }, 0); };
+  const focusReport = (stall) => { setReportTarget(stall); window.setTimeout(() => document.querySelector('.quality-report-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0); };
   return (
     <main className="market-page">
       <div className="page-shell">
@@ -237,7 +241,7 @@ function MarketPage({ market, proposals, ratingSummaries, communityBusy, proposa
         <details className="market-source-details"><summary>查看完整來源與座標說明</summary><div className="market-source-grid"><span>來源網址</span><a href={market.sourceUrl || 'https://data.gov.tw/dataset/95760'} target="_blank" rel="noreferrer">開啟資料來源 <ExternalLink size={12} /></a><span>座標狀態</span><b>{market.coordinateStatus === 'unverified' ? '尚未核對，不顯示精確距離' : market.coordinatePrecision || '入口／商圈近似'}</b>{market.coordinateSource && <><span>座標連結</span><a href={market.coordinateSource} target="_blank" rel="noreferrer">查看地圖來源 <ExternalLink size={12} /></a></>}</div></details>
         <details className="market-auth-tools"><summary>登入參與表決</summary><AuthPanel user={user} authBusy={authBusy} authMessage={authMessage} email={email} setEmail={setEmail} onSendMagicLink={sendMagicLink} onSignOut={signOut} authOpen={authOpen} setAuthOpen={setAuthOpen} /></details>
         {showContribution && <ContributionForm selected={market} user={user} marketDbId={marketDbId} busy={proposalBusy} onSubmit={submitProposal} onClose={() => setShowContribution(false)} />}
-        <MarketCommunityFeed proposals={proposals} ratingSummaries={ratingSummaries} communityBusy={communityBusy} proposalBusy={proposalBusy} proposalError={proposalError} user={user} voteOnProposal={voteOnProposal} rateStall={rateStall} setReportTarget={setReportTarget} />
+        <MarketCommunityFeed proposals={proposals} ratingSummaries={ratingSummaries} communityBusy={communityBusy} proposalBusy={proposalBusy} proposalError={proposalError} user={user} voteOnProposal={voteOnProposal} rateStall={rateStall} onRequireAuth={focusMarketAuth} onReport={focusReport} />
         <section className="market-page-next"><span className="section-label">資料品質</span><h2>一起讓這個夜市更好逛</h2><p>已採用的攤位可以留下 1–5 星喜好評分；發現地址、店名或營業資訊需要更新，也可以送出資料回報。</p>{reportTarget && <QualityReportForm stall={reportTarget} user={user} busy={proposalBusy} onSubmit={submitQualityReport} onClose={() => setReportTarget(null)} />}{!user && <p className="form-hint">登入後可表決與星評；投稿與資料回報依現有匿名流程處理。</p>}</section>
       </div>
     </main>
