@@ -8,5 +8,8 @@ const supabasePublishableKey = (
   || import.meta.env.VITE_SUPABASE_ANON_KEY
 )?.trim();
 
+// Browser-safe public key. The Turnstile secret belongs in Supabase Auth.
+export const turnstileSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY?.trim() || '';
+
 export const supabaseConfigured = Boolean(supabaseUrl && supabasePublishableKey);
 export const supabase = supabaseConfigured ? createClient(supabaseUrl, supabasePublishableKey) : null;

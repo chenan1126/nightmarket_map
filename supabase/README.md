@@ -1,6 +1,6 @@
 # Supabase schema
 
-`migrations/202609180001_social_contributions.sql` 定義社群投稿的第一版資料表與 RLS；`202609180002_seed_markets.sql` 匯入初始名錄。目前已部署至 Supabase project，遠端有 86 筆 `needs_review` markets，尚無 proposals；瀏覽器仍沒有管理員採用流程。
+`migrations/202609180001_social_contributions.sql` 定義社群投稿的第一版資料表與 RLS；`202609180002_seed_markets.sql` 匯入初始名錄；`202609180003_anonymous_proposal_rate_limit.sql` 對匿名 user 加上每小時最多 3 筆提案的資料庫限制。目前已部署至 Supabase project，遠端有 86 筆 `needs_review` markets，尚無 proposals；瀏覽器仍沒有管理員採用流程。
 
 `markets.id` 是資料庫內部 UUID；匯入目前 JSON 時，請把原本的穩定字串 `id` 放入 `markets.external_id`。`external_id` 有唯一約束，攤位和提案的外鍵仍使用內部 UUID，避免以字串 ID 直接承擔資料庫關聯。
 

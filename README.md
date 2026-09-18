@@ -18,11 +18,12 @@ Web 沒有設定 Supabase 時會維持唯讀名錄，不會假稱投稿或評分
 ```text
 VITE_SUPABASE_URL=https://<project-ref>.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=<publishable-key>
+VITE_TURNSTILE_SITE_KEY=<cloudflare-turnstile-site-key>
 ```
 
 舊部署也可繼續使用 `VITE_SUPABASE_ANON_KEY`；前端會將它視為相同的瀏覽器公開金鑰。
 
-目前 Anonymous Sign-Ins 維持關閉，等 CAPTCHA / 反濫用方案決定後再開啟；本機 email magic-link redirect 已允許 `http://localhost:5173`，正式網域尚未決定。`service_role` key 不得放入前端或 repo。完整的 RLS 邊界與本機驗證方式見 [`supabase/README.md`](supabase/README.md)。
+匿名投稿需要 Cloudflare Turnstile：瀏覽器只使用 `VITE_TURNSTILE_SITE_KEY`，Turnstile secret 必須在 Supabase Auth 的 CAPTCHA 設定中配置，不能放入前端或 repo。CAPTCHA 只在建立匿名 session 時驗證；資料庫另外限制每個匿名 user 每小時最多 3 筆提案。未設定 site key 時，匿名投稿與 magic link 登入會停在表單並明確顯示未啟用；永久登入會員仍可投稿。本機 email magic-link redirect 已允許 `http://localhost:5173`，正式網域尚未決定。`service_role` key 不得放入前端或 repo。完整的 RLS 邊界與本機驗證方式見 [`supabase/README.md`](supabase/README.md)。
 
 首頁可直接新增夜市；新增夜市提案必填縣市、區域、地址或明確位置描述與來源 URL，並會出現在全台/縣市的待確認列表。票數由資料庫 trigger 維護，前端只讀彙總；星評只對正式採用且已建立攤位的提案開放，沒有正式攤位時會明確顯示待採用。
 
