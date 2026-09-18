@@ -1,0 +1,60 @@
+# 上線 TODO
+
+這份清單以「一般使用者能找到附近夜市、貢獻者能提交且社群能複核、管理者能安全維護」作為第一個公開版本的驗收標準。每一項都應有可重現的驗收步驟與資料來源。
+
+## Phase 0：公開唯讀名錄與基本安全
+
+- [x] React/Vite Web 站可在 production build 後啟動。
+- [x] 全台夜市名錄快照匯入：86 筆候選、15 個縣市，保留來源與快照日期。
+- [x] 夜市搜尋、縣市篩選、瀏覽器定位失敗時的替代流程。
+- [ ] 補齊各縣市名錄查核紀錄、營業狀態與可靠座標；目前只有少數點位可用於距離排序。
+- [x] `.env`、Supabase secret、service role key、Turnstile secret 不進 Git。
+
+## Phase 1：社群投稿與會員決策
+
+- [x] Supabase schema、RLS、匿名投稿頻率限制與公開資料讀取邊界。
+- [x] Turnstile 與 Supabase CAPTCHA 已設定；匿名登入已開啟。
+- [x] 訪客可提交附來源 URL 的夜市／攤位提案，預設為待確認。
+- [x] 會員可用 magic link 登入，對提案支持、反對或要求補證據。
+- [x] 同一會員同一提案只能有一票，改票會更新原票。
+- [x] 提案狀態、來源、票數與管理理由可顯示。
+- [ ] 正式網域、redirect URL、Turnstile hostname 與 production build 環境變數仍待設定。
+- [ ] 上線前以正式網域完成真人 CAPTCHA、magic link、匿名投稿與 RLS 拒絕流程驗收。
+
+## Phase 2：管理審核與正式攤位
+
+- [x] moderator/admin 可查看待審提案並寫入審核 audit。
+- [x] 需補資料與退回狀態必須填理由。
+- [x] 採用攤位提案時，以 moderator-only secure RPC transaction 建立正式 `public.stalls`，避免同一夜市同名攤位重複，並回填 `adopted_stall_id`。
+- [x] 採用攤位時保留 proposal/stall audit，星評只對正式採用且 active 的攤位開放。
+- [x] 採用夜市提案會安全拒絕，待另立夜市 onboarding 流程；不可由審核 RPC 自動建立市場。
+- [ ] 建立可回復的正式資料修正／停業／重複合併流程。
+- [ ] 以一筆新攤位提案完成採用後的正式攤位與星評端到端驗收。
+
+## Phase 3：資料品質與在地維護
+
+- [ ] 相似名稱與可能重複提案提示。
+- [ ] 回報錯誤、重複、搬遷、停業與不當內容。
+- [ ] 公開顯示資料查核時間、證據版本與處理紀錄。
+- [ ] 每縣市或夜市的協作者與待處理提案負責人。
+
+## Phase 4：公開營運
+
+- [ ] 正式 hosting、domain、錯誤監控、備份與 migration runbook。
+- [ ] 手機寬度、主要瀏覽器與定位授權／拒絕情境驗收。
+- [ ] 公開服務說明、隱私政策、投稿規範與內容申訴管道。
+- [ ] 控制濫用：匿名投稿配額、登入濫用監控與管理者 audit 查詢。
+
+## Phase 5：商業化（資料與社群穩定後）
+
+- [ ] 商家認領頁面與可撤銷的認領審核。
+- [ ] 清楚標示的贊助曝光、優惠券或商家工具訂閱。
+- [ ] 不出售個人投票／星評，不讓付費影響表決或評分。
+- [ ] 地方政府、商圈協會與匿名彙整資料合作方案。
+
+## 目前阻塞與需人工操作
+
+- 正式網域尚未決定，因此 production redirect URL、Turnstile hostname 與部署尚未完成。
+- Supabase Dashboard 的 moderator/admin 角色、Auth 設定與正式網域驗收由專案負責人操作；本專案規範不由代理操作瀏覽器或要求提供 secret。
+- 全台資料仍是待複核工作版，不可把 86 筆匯入數當成全台完整覆蓋率。
+- 新增攤位的採用 RPC 與前端 build 已完成；遠端 migration 套用、真人 CAPTCHA、正式 email 與 production hosting 仍需按上線檢查表逐項驗收。
